@@ -233,9 +233,11 @@ def create_service_files(install_dir: str, port: int = DEFAULT_PORT) -> bool:
                 logger.error(f"Source file {src_path} not found")
                 return False
         
-        # Copy the simplified service wrapper
-        with open(os.path.join(install_dir, "service_wrapper.py"), 'w') as f:
-            f.write("""#!/usr/bin/env python3
+        # Create the service wrapper script with properly substituted port value
+        wrapper_path = os.path.join(install_dir, "service_wrapper.py")
+        
+        # Get the template content
+        service_wrapper_template = """#!/usr/bin/env python3
 \"\"\"
 NCSI Resolver Service Wrapper
 
@@ -310,7 +312,7 @@ class NCSIHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         \"\"\"Handle GET requests.\"\"\"
         client_ip = self.client_address[0]
-        logger.info(f"Request from {client_ip} for {self.path}")
+        logger.info(f"Request from {{client_ip}} for {{self.path}}")
         
         # Handle NCSI connectivity test paths
         if self.path == "/connecttest.txt" or self.path == "/ncsi.txt":
@@ -342,7 +344,7 @@ def get_local_ip():
         s.close()
         return local_ip
     except Exception as e:
-        logger.error(f"Failed to get local IP: {e}")
+        logger.error(f"Failed to get local IP: {{e}}")
         return "0.0.0.0"  # Fall back to all interfaces
 
 # Main service code
@@ -351,20 +353,65 @@ try:
     
     # Get local IP or use all interfaces
     host = get_local_ip()
-    port = {port}
     
-    logger.info(f"Creating server on {host}:{port}")
+    # Define port - hardcoded for reliability
+    port = {0}  # This will be replaced with the actual port number
+    
+    # Fallback to default port if substitution failed or value is invalid
+    if not isinstance(port, int):
+        logger.warning(f"Port value '{{port}}' is not valid, using default port 80")
+        port = 80
+    
+    logger.info(f"Creating server on {{host}}:{{port}}")
     
     # Create and start the server
     httpd = HTTPServer((host, port), NCSIHandler)
     
-    logger.info(f"NCSI Resolver server running on {host}:{port}")
+    logger.info(f"NCSI Resolver server running on {{host}}:{{port}}")
     httpd.serve_forever()
     
 except Exception as e:
-    logger.error(f"Error starting NCSI Resolver service: {e}")
+    logger.error(f"Error starting NCSI Resolver service: {{e}}")
     sys.exit(1)
-""")
+"""
+        
+        # Replace the port placeholder with the actual port
+        service_wrapper_content = service_wrapper_template.format(port)
+        
+        # Write the file
+        with open(wrapper_path, 'w') as f:
+            f.write(service_wrapper_content)
+        
+        # Create junction points for easier navigation
+        try:
+            # Ensure backup directory exists
+            backup_dir = os.path.join(os.environ.get('LOCALAPPDATA', os.path.expanduser('~')), 
+                                    "NCSI_Resolver", "Backups")
+            os.makedirs(backup_dir, exist_ok=True)
+            
+            # Create junction point in installation directory pointing to backups
+            backup_link_path = os.path.join(install_dir, "Backups")
+            if not os.path.exists(backup_link_path):
+                subprocess.run(
+                    ["cmd", "/c", "mklink", "/J", backup_link_path, backup_dir],
+                    check=False,
+                    capture_output=True
+                )
+                logger.info(f"Created junction point from {backup_link_path} to {backup_dir}")
+            
+            # Create junction point in backup directory pointing to installation
+            install_link_path = os.path.join(backup_dir, "Installation")
+            if not os.path.exists(install_link_path):
+                subprocess.run(
+                    ["cmd", "/c", "mklink", "/J", install_link_path, install_dir],
+                    check=False,
+                    capture_output=True
+                )
+                logger.info(f"Created junction point from {install_link_path} to {install_dir}")
+                
+        except Exception as e:
+            logger.warning(f"Could not create directory junctions: {e}")
+            # This is not critical, so we continue
         
         logger.info(f"Created service files in {install_dir}")
         return True
