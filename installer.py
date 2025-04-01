@@ -49,7 +49,7 @@ try:
     __description__ = __version_info__["description"]
 except ImportError:
     # Fallback version info if version.py is missing
-    __version__ = "0.6.0"
+    __version__ = "0.7.0"
     __description__ = "Windows Network Connectivity Status Indicator Resolver Installer"
 
 # Add parent directory to path for imports

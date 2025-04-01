@@ -234,28 +234,33 @@ def bind_server(host, port, max_retries=3):
     Returns:
         HTTPServer or None if all attempts fail
     """
-    logger.debug(f"Attempting to bind server to {host}:{port}")
+    # FIX: Always try to bind to all interfaces first
+    logger.debug(f"Attempting to bind server to 0.0.0.0:{port} (all interfaces)")
     
     for attempt in range(max_retries):
         try:
-            # Create the HTTP server
-            server = HTTPServer((host, port), NCSIHandler)
-            logger.info(f"Successfully bound server to {host}:{port} on attempt {attempt+1}")
+            # FIX: Always bind to 0.0.0.0 (all interfaces) for maximum compatibility
+            server = HTTPServer(("0.0.0.0", port), NCSIHandler)
+            logger.info(f"Successfully bound server to 0.0.0.0:{port} on attempt {attempt+1}")
             return server
         except Exception as e:
-            logger.error(f"Failed to bind to {host}:{port} on attempt {attempt+1}: {e}")
+            logger.error(f"Failed to bind to 0.0.0.0:{port} on attempt {attempt+1}: {e}")
             logger.debug(f"Binding error details: {traceback.format_exc()}")
             
-            # On last attempt, try all interfaces
-            if attempt == max_retries - 1:
+            # If binding to all interfaces fails, try the specific host
+            if attempt == max_retries - 1 and host != "0.0.0.0":
                 try:
-                    logger.debug("Trying to bind to all interfaces (0.0.0.0) as last resort")
-                    server = HTTPServer(("0.0.0.0", port), NCSIHandler)
-                    logger.info(f"Successfully bound server to 0.0.0.0:{port} as fallback")
+                    logger.debug(f"Trying to bind to specific interface {host}:{port} as fallback")
+                    server = HTTPServer((host, port), NCSIHandler)
+                    logger.info(f"Successfully bound server to {host}:{port} as fallback")
                     return server
                 except Exception as e2:
-                    logger.error(f"Failed to bind to fallback 0.0.0.0:{port}: {e2}")
+                    logger.error(f"Failed to bind to fallback {host}:{port}: {e2}")
                     logger.debug(f"Fallback binding error details: {traceback.format_exc()}")
+            
+            # Add delay between attempts
+            if attempt < max_retries - 1:
+                time.sleep(1)
     
     return None
 
@@ -274,17 +279,29 @@ try:
         logger.warning(f"Port value '{port}' is not valid, using default port 80")
         port = 80
     
-    logger.info(f"Attempting to create server on {host}:{port}")
+    # FIX: Log both binding options for transparency
+    logger.info(f"Will attempt to bind to all interfaces (0.0.0.0:{port}) first")
+    logger.info(f"Detected local IP {host}:{port} will be used as fallback if needed")
     
     # Try to bind the server with retries
     httpd = bind_server(host, port)
     
     if httpd:
         # Server bound successfully
-        logger.info(f"NCSI Resolver server running on {host}:{port}")
+        server_host, server_port = httpd.server_address
+        logger.info(f"NCSI Resolver server running on {server_host}:{server_port}")
         
         # Test socket is actually listening
         try:
+            # FIX: Try to connect to both localhost and the specific IP
+            logger.debug("Verifying connection to server via localhost")
+            test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            test_socket.settimeout(1)
+            test_socket.connect(("127.0.0.1", port))
+            test_socket.close()
+            logger.debug(f"Successfully verified socket is listening on localhost:{port}")
+            
+            logger.debug(f"Verifying connection to server via local IP {host}")
             test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             test_socket.settimeout(1)
             test_socket.connect((host, port))
@@ -293,6 +310,7 @@ try:
         except Exception as e:
             logger.warning(f"Socket verification failed: {e}")
             logger.debug(f"Socket verification error details: {traceback.format_exc()}")
+            logger.info("Socket verification failed but continuing anyway, service may still work")
         
         # Run the server
         httpd.serve_forever()

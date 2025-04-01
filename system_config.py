@@ -995,7 +995,7 @@ def reset_configuration() -> bool:
 [HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\NlaSvc\\Parameters\\Internet]
 "EnableActiveProbing"=dword:00000001
 "ActiveWebProbeHost"="www.msftconnecttest.com"
-"ActiveWebProbePath"="/connecttest.txt"
+"ActiveWebProbePath"="connecttest.txt"
 "ActiveWebProbeContent"="Microsoft Connect Test"
 "EnableActiveHTTPS"=dword:00000001
 """)

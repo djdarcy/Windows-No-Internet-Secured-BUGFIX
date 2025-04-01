@@ -55,7 +55,7 @@ try:
     __description__ = __version_info__["description"]
 except ImportError:
     # Fallback version info if version.py is missing
-    __version__ = "0.6.0"
+    __version__ = "0.7.0"
     __description__ = "NCSI Resolver Service Installer"
 
 # Import system configuration module
@@ -262,21 +262,25 @@ def create_service_files(install_dir: str, port: int = DEFAULT_PORT) -> bool:
         # Files to copy
         files_to_copy = [
             {"src": os.path.join(source_dir, "NCSIresolver", "ncsi_server.py"), 
-             "dst": os.path.join(install_dir, "ncsi_server.py")},
+            "dst": os.path.join(install_dir, "ncsi_server.py")},
             {"src": os.path.join(source_dir, "system_config.py"), 
-             "dst": os.path.join(install_dir, "system_config.py")},
+            "dst": os.path.join(install_dir, "system_config.py")},
             {"src": os.path.join(source_dir, "NCSIresolver", "service_wrapper.py"), 
-             "dst": os.path.join(install_dir, "service_wrapper.py")},
+            "dst": os.path.join(install_dir, "service_wrapper.py")},
             {"src": os.path.join(source_dir, "NCSIresolver", "redirect.html"), 
-             "dst": os.path.join(install_dir, "redirect.html")},
+            "dst": os.path.join(install_dir, "redirect.html")},
             {"src": os.path.join(source_dir, "NCSIresolver", "config.json"), 
-             "dst": os.path.join(install_dir, "config.json")},
+            "dst": os.path.join(install_dir, "config.json")},
             {"src": os.path.join(source_dir, "NCSIresolver", "config_manager.py"), 
-             "dst": os.path.join(install_dir, "config_manager.py")},
+            "dst": os.path.join(install_dir, "config_manager.py")},
             {"src": os.path.join(source_dir, "NCSIresolver", "logger.py"), 
-             "dst": os.path.join(install_dir, "logger.py")},
+            "dst": os.path.join(install_dir, "logger.py")},
             {"src": os.path.join(source_dir, "NCSIresolver", "directory_manager.py"), 
-             "dst": os.path.join(install_dir, "directory_manager.py")}
+            "dst": os.path.join(install_dir, "directory_manager.py")},
+            {"src": os.path.join(source_dir, "NCSIresolver", "network_diagnostics.py"), 
+            "dst": os.path.join(install_dir, "network_diagnostics.py")},
+            {"src": os.path.join(source_dir, "NCSIresolver", "security_monitoring.py"), 
+            "dst": os.path.join(install_dir, "security_monitoring.py")}
         ]
         
         # Count of successfully copied files
@@ -804,6 +808,7 @@ def main():
         logger.setLevel(logging.DEBUG)
     
     # Use timeout from args if specified
+    global timeout
     TIMEOUT = args.timeout
     
     # Check if running on Windows

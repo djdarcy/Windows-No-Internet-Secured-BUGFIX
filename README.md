@@ -2,7 +2,7 @@
 
 ![NCSI Resolver Banner](docs/images/banner.png)
 [![GitHub Workflow Status](https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/actions/workflows/python.yml/badge.svg)](https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/actions)
-![Version](https://img.shields.io/badge/version-0.6.0--alpha-blue)
+![Version](https://img.shields.io/badge/version-0.7.0--alpha-blue)
 ![Python](https://img.shields.io/badge/python-3.8%2B-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 

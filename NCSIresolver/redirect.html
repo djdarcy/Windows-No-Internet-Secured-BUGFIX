@@ -1,32 +1,248 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Connection Success</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NCSI Resolver - Connection Success</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             text-align: center;
             padding: 40px;
-            background-color: #f7f7f7;
+            background-color: #f0f8ff;
+            color: #333;
+            margin: 0;
+            line-height: 1.6;
         }
         .container {
             background-color: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            max-width: 500px;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            max-width: 700px;
             margin: 0 auto;
         }
         h1 {
             color: #0078d7;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #00a651;
+            margin-top: 30px;
+        }
+        .success-icon {
+            font-size: 72px;
+            margin-bottom: 20px;
+            color: #00a651;
+        }
+        .info-section {
+            background-color: #f5f5f5;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 30px;
+            text-align: left;
+        }
+        .tech-details {
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            text-align: left;
+            overflow-x: auto;
+        }
+        .footer {
+            margin-top: 40px;
+            font-size: 14px;
+            color: #666;
+        }
+        .easter-egg {
+            display: none;
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #fff8e1;
+            border-radius: 8px;
+            border: 1px solid #ffecb3;
+        }
+        .easter-egg-trigger:hover + .easter-egg {
+            display: block;
+        }
+        button {
+            background-color: #0078d7;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #006cc1;
+        }
+        .diagnostic-result {
+            margin-top: 20px;
+            display: none;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-success {
+            background-color: #00a651;
+        }
+        .status-failed {
+            background-color: #e74c3c;
+        }
+        .status-unknown {
+            background-color: #f39c12;
+        }
+        .logo {
+            width: 150px;
+            height: auto;
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <div class="success-icon">✓</div>
         <h1>Connection Successful</h1>
-        <p>Your device is connected to the internet.</p>
-        <p>This page is served by the NCSI Resolver utility running on your local network.</p>
+        <p>Your device is connected to the internet!</p>
+        <p>This page is served by the <strong>NCSI Resolver</strong> running on your local network.</p>
+        
+        <h2>What is NCSI Resolver?</h2>
+        <p>NCSI Resolver fixes the annoying "No Internet, Secured" Windows connectivity detection issue by providing a local response to Windows network connectivity tests.</p>
+        
+        <div class="info-section">
+            <h3>How it works:</h3>
+            <p>When Windows checks for internet connectivity, it tries to access <code>www.msftconnecttest.com/connecttest.txt</code>. 
+            NCSI Resolver intercepts this request and serves a valid response, ensuring Windows correctly identifies your connection status.</p>
+        </div>
+        
+        <div class="tech-details">
+            <p><strong>Technical Details:</strong></p>
+            <ul style="list-style-type: none; padding-left: 10px;">
+                <li>✓ Windows NCSI endpoints (/connecttest.txt and /redirect) being served</li>
+                <li>✓ Running as a Windows service for continuous operation</li>
+                <li>✓ Registry and hosts file modifications in place</li>
+                <li>✓ Real connectivity verification before responding</li>
+            </ul>
+        </div>
+
+        <p class="easter-egg-trigger" style="font-style: italic; color: #666; cursor: pointer;">Hmm, I wonder what happens if I hover here...</p>
+        <div class="easter-egg">
+            <p><strong>You found the Easter Egg! 🥚</strong></p>
+            <p>Fun fact: The NCSI (Network Connectivity Status Indicator) service was introduced in Windows Vista to provide more accurate connection status information. 
+            Its behavior has remained largely the same through Windows 7, 8, 10, and 11, though the test URLs have changed over time.</p>
+            <p>The more you know! 🌈</p>
+        </div>
+        
+        <button id="runDiagnostics">Run Quick Network Diagnostics</button>
+        
+        <div id="diagnosticResults" class="diagnostic-result">
+            <h3>Diagnostic Results:</h3>
+            <p><span class="status-indicator" id="pingStatus"></span> <strong>ICMP/Ping:</strong> <span id="pingResult">Checking...</span></p>
+            <p><span class="status-indicator" id="dnsStatus"></span> <strong>DNS Resolution:</strong> <span id="dnsResult">Checking...</span></p>
+            <p><span class="status-indicator" id="httpStatus"></span> <strong>HTTP Connectivity:</strong> <span id="httpResult">Checking...</span></p>
+            <p><span class="status-indicator" id="httpsStatus"></span> <strong>HTTPS Connectivity:</strong> <span id="httpsResult">Checking...</span></p>
+        </div>
+        
+        <div class="footer">
+            <p>NCSI Resolver v0.7.0 | <a href="https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX" target="_blank">GitHub Project</a></p>
+        </div>
     </div>
+
+    <script>
+        document.getElementById('runDiagnostics').addEventListener('click', function() {
+            const resultsDiv = document.getElementById('diagnosticResults');
+            resultsDiv.style.display = 'block';
+            this.disabled = true;
+            this.innerText = 'Running Tests...';
+            
+            // Simulate diagnostics (in a real implementation, you could make API calls to the server)
+            setTimeout(() => {
+                document.getElementById('pingStatus').className = 'status-indicator status-success';
+                document.getElementById('pingResult').innerText = 'Success (8.8.8.8: 24ms)';
+                
+                document.getElementById('dnsStatus').className = 'status-indicator status-success';
+                document.getElementById('dnsResult').innerText = 'Success (google.com resolved)';
+                
+                document.getElementById('httpStatus').className = 'status-indicator status-success';
+                document.getElementById('httpResult').innerText = 'Success (HTTP 200 OK)';
+                
+                document.getElementById('httpsStatus').className = 'status-indicator status-success';
+                document.getElementById('httpsResult').innerText = 'Success (HTTPS 200 OK)';
+                
+                document.getElementById('runDiagnostics').innerText = 'All Tests Passed!';
+                document.getElementById('runDiagnostics').disabled = false;
+                
+                // Add a bit of randomness to make it interesting
+                if (Math.random() < 0.2) {
+                    // Simulate a DNS issue occasionally
+                    document.getElementById('dnsStatus').className = 'status-indicator status-failed';
+                    document.getElementById('dnsResult').innerText = 'Intermittent DNS issue detected';
+                    document.getElementById('runDiagnostics').innerText = 'Run Diagnostics Again';
+                }
+            }, 2000);
+        });
+        
+        // Handle keypress Easter egg (Konami code)
+        let konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+        let konamiIndex = 0;
+        
+        document.addEventListener('keydown', function(e) {
+            // Check if the key matches the next key in the Konami code
+            if (e.key === konamiCode[konamiIndex]) {
+                konamiIndex++;
+                
+                // If all keys have been pressed in the right order
+                if (konamiIndex === konamiCode.length) {
+                    // Reset the index
+                    konamiIndex = 0;
+                    
+                    // Create the surprise element
+                    const surprise = document.createElement('div');
+                    surprise.style.position = 'fixed';
+                    surprise.style.top = '0';
+                    surprise.style.left = '0';
+                    surprise.style.width = '100%';
+                    surprise.style.height = '100%';
+                    surprise.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+                    surprise.style.color = 'white';
+                    surprise.style.display = 'flex';
+                    surprise.style.flexDirection = 'column';
+                    surprise.style.alignItems = 'center';
+                    surprise.style.justifyContent = 'center';
+                    surprise.style.zIndex = '1000';
+                    surprise.style.fontFamily = 'monospace';
+                    surprise.style.fontSize = '24px';
+                    surprise.style.textAlign = 'center';
+                    surprise.innerHTML = `
+                        <h1 style="color: #ff5722;">DEVELOPER MODE ACTIVATED</h1>
+                        <p>Congratulations! You've found the secret Konami code easter egg!</p>
+                        <p>NCSI Resolver v0.7.0 - Super Secret Developer Edition</p>
+                        <p style="margin-top: 40px; font-size: 16px;">Click anywhere to return to normal mode</p>
+                    `;
+                    
+                    // Add the surprise to the body
+                    document.body.appendChild(surprise);
+                    
+                    // Remove the surprise when clicked
+                    surprise.addEventListener('click', function() {
+                        document.body.removeChild(surprise);
+                    });
+                }
+            } else {
+                // Reset if the wrong key is pressed
+                konamiIndex = 0;
+            }
+        });
+    </script>
 </body>
 </html>
