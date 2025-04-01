@@ -1,6 +1,11 @@
 # NCSI Resolver
 
 ![NCSI Resolver Banner](docs/images/banner.png)
+[![GitHub Workflow Status](https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/actions/workflows/python.yml/badge.svg)](https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/actions)
+![Version](https://img.shields.io/badge/version-0.6.0--alpha-blue)
+![Python](https://img.shields.io/badge/python-3.8%2B-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-blue)
+
 
 A solution to fix the "No Internet, Secured" Windows connectivity detection issue when Windows incorrectly reports no internet connection despite having working connectivity.
 
