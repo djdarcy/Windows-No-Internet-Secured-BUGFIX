@@ -123,24 +123,35 @@ def download_nssm() -> Optional[str]:
         # Download NSSM
         zip_path = temp_dir / "nssm.zip"
         
-        urllib.request.urlretrieve(NSSM_URL, zip_path)
+        # Check if we already have the zip
+        if not os.path.exists(zip_path):
+            urllib.request.urlretrieve(NSSM_URL, zip_path)
+            logger.info(f"Downloaded NSSM zip to {zip_path}")
+        else:
+            logger.info(f"Using previously downloaded NSSM zip from {zip_path}")
         
-        # Extract NSSM
-        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-            zip_ref.extractall(temp_dir)
+        # Check if we've already extracted it
+        nssm_win64_path = temp_dir / "nssm-2.24" / "win64" / "nssm.exe"
+        nssm_win32_path = temp_dir / "nssm-2.24" / "win32" / "nssm.exe"
+        
+        if os.path.exists(nssm_win64_path) or os.path.exists(nssm_win32_path):
+            logger.info("NSSM already extracted")
+        else:
+            # Extract NSSM
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(temp_dir)
+            logger.info("Extracted NSSM zip file")
         
         # Find nssm.exe (use 64-bit version if available)
-        if os.path.exists(temp_dir / "nssm-2.24" / "win64" / "nssm.exe"):
-            nssm_path = temp_dir / "nssm-2.24" / "win64" / "nssm.exe"
+        if os.path.exists(nssm_win64_path):
+            nssm_path = nssm_win64_path
+        elif os.path.exists(nssm_win32_path):
+            nssm_path = nssm_win32_path
         else:
-            nssm_path = temp_dir / "nssm-2.24" / "win32" / "nssm.exe"
-        
-        # Verify executable exists
-        if not os.path.exists(nssm_path):
             logger.error("Failed to find nssm.exe in extracted files")
             return None
         
-        logger.info(f"Downloaded NSSM to {nssm_path}")
+        logger.info(f"Found NSSM at {nssm_path}")
         return str(nssm_path)
     
     except Exception as e:
@@ -171,7 +182,9 @@ def get_nssm_path() -> Optional[str]:
             check=True,
             timeout=5
         )
-        return result.stdout.strip().split('\n')[0]
+        nssm_path = result.stdout.strip().split('\n')[0]
+        logger.info(f"Found NSSM in PATH: {nssm_path}")
+        return nssm_path
     except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
         pass
     
@@ -220,74 +233,41 @@ def create_service_files(install_dir: str, port: int = DEFAULT_PORT) -> bool:
                 logger.error(f"Source file {src_path} not found")
                 return False
         
-        # Create service wrapper script
-        wrapper_path = os.path.join(install_dir, "service_wrapper.py")
-        with open(wrapper_path, 'w') as f:
-            f.write(f"""#!/usr/bin/env python3
+        # Copy the simplified service wrapper
+        with open(os.path.join(install_dir, "service_wrapper.py"), 'w') as f:
+            f.write("""#!/usr/bin/env python3
 \"\"\"
 NCSI Resolver Service Wrapper
 
 This script is used to start the NCSI server as a Windows service.
+This is a simplified version designed for maximum compatibility.
 \"\"\"
 
 import os
 import sys
 import logging
+import socket
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 
-# Add installation directory to path
-current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, current_dir)
+# Get the current directory (where this script is located)
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Set up logging to file
-log_path = os.path.join(current_dir, "ncsi_resolver.log")
+LOG_PATH = os.path.join(CURRENT_DIR, "ncsi_resolver.log")
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(log_path),
+        logging.FileHandler(LOG_PATH),
         logging.StreamHandler(sys.stdout)
     ]
 )
 logger = logging.getLogger('ncsi_service')
 
-# Import and run the server
-try:
-    from ncsi_server import create_server, run_server
-    
-    logger.info("Starting NCSI Resolver service...")
-    
-    # Create server with defined configuration
-    server = create_server(
-        host="0.0.0.0",  # Listen on all interfaces
-        port={port},
-        verify_connectivity=True
-    )
-    
-    # Run the server (this will keep running until stopped)
-    server_thread = run_server(server)
-    
-    # Keep the main thread alive to prevent the service from exiting
-    # This is important for the service to remain running
-    try:
-        while True:
-            import time
-            time.sleep(60)  # Check every minute
-            if not server_thread.is_alive():
-                logger.error("Server thread died, restarting...")
-                server_thread = run_server(server)
-    except KeyboardInterrupt:
-        logger.info("Service interrupted")
-    
-except Exception as e:
-    logger.error(f"Error starting NCSI Resolver service: {{e}}")
-    sys.exit(1)
-""")
-        
-        # Create HTML file for redirect endpoint
-        redirect_html_path = os.path.join(install_dir, "redirect.html")
-        with open(redirect_html_path, 'w') as f:
-            f.write("""<!DOCTYPE html>
+# NCSI content constants - embed directly to avoid file access issues
+NCSI_TEXT = b"Microsoft Connect Test"
+REDIRECT_HTML = b\"\"\"<!DOCTYPE html>
 <html>
 <head>
     <title>Connection Success</title>
@@ -318,7 +298,73 @@ except Exception as e:
         <p>This page is served by the NCSI Resolver utility running on your local network.</p>
     </div>
 </body>
-</html>""")
+</html>
+\"\"\"
+
+# Define a simple request handler
+class NCSIHandler(BaseHTTPRequestHandler):
+    def log_message(self, format, *args):
+        \"\"\"Log messages to our logger instead of stderr.\"\"\"
+        logger.info(format % args)
+        
+    def do_GET(self):
+        \"\"\"Handle GET requests.\"\"\"
+        client_ip = self.client_address[0]
+        logger.info(f"Request from {client_ip} for {self.path}")
+        
+        # Handle NCSI connectivity test paths
+        if self.path == "/connecttest.txt" or self.path == "/ncsi.txt":
+            self.send_response(200)
+            self.send_header("Content-type", "text/plain")
+            self.send_header("Content-Length", str(len(NCSI_TEXT)))
+            self.end_headers()
+            self.wfile.write(NCSI_TEXT)
+            
+        # Handle NCSI redirect endpoint (used for captive portal detection)
+        elif self.path == "/redirect":
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.send_header("Content-Length", str(len(REDIRECT_HTML)))
+            self.end_headers()
+            self.wfile.write(REDIRECT_HTML)
+            
+        # Return a 404 for any other paths
+        else:
+            self.send_error(404, "Not Found")
+
+def get_local_ip():
+    \"\"\"Get the local IP address of the machine.\"\"\"
+    try:
+        # Create a socket to determine the local IP
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+        return local_ip
+    except Exception as e:
+        logger.error(f"Failed to get local IP: {e}")
+        return "0.0.0.0"  # Fall back to all interfaces
+
+# Main service code
+try:
+    logger.info("Starting NCSI Resolver service...")
+    
+    # Get local IP or use all interfaces
+    host = get_local_ip()
+    port = {port}
+    
+    logger.info(f"Creating server on {host}:{port}")
+    
+    # Create and start the server
+    httpd = HTTPServer((host, port), NCSIHandler)
+    
+    logger.info(f"NCSI Resolver server running on {host}:{port}")
+    httpd.serve_forever()
+    
+except Exception as e:
+    logger.error(f"Error starting NCSI Resolver service: {e}")
+    sys.exit(1)
+""")
         
         logger.info(f"Created service files in {install_dir}")
         return True
@@ -326,6 +372,8 @@ except Exception as e:
     except Exception as e:
         logger.error(f"Error creating service files: {e}")
         return False
+
+# Fix for the install_service function in service_installer.py
 
 def install_service(install_dir: str, nssm_path: str) -> bool:
     """
@@ -339,7 +387,7 @@ def install_service(install_dir: str, nssm_path: str) -> bool:
         bool: True if successful, False otherwise
     """
     try:
-        # Path to wrapper script
+        # Path to wrapper script - ensure it's properly quoted for spaces
         wrapper_path = os.path.join(install_dir, "service_wrapper.py")
         
         # Check if Python is in PATH
@@ -368,7 +416,8 @@ def install_service(install_dir: str, nssm_path: str) -> bool:
             # Service doesn't exist, which is what we want
             pass
         
-        # Install the service
+        # Install the service - properly quote paths with spaces
+        command = f'"{python_path}" "{wrapper_path}"'
         install_result = subprocess.run(
             [nssm_path, "install", SERVICE_NAME, python_path, wrapper_path],
             check=True,
@@ -395,7 +444,7 @@ def install_service(install_dir: str, nssm_path: str) -> bool:
             timeout=5
         )
         
-        # Set startup directory
+        # Set startup directory - properly quoted for spaces
         subprocess.run(
             [nssm_path, "set", SERVICE_NAME, "AppDirectory", install_dir],
             check=True,
@@ -430,6 +479,14 @@ def install_service(install_dir: str, nssm_path: str) -> bool:
         
         subprocess.run(
             [nssm_path, "set", SERVICE_NAME, "AppStderr", log_path],
+            check=True,
+            capture_output=True,
+            timeout=5
+        )
+        
+        # Explicitly set the full command line to handle spaces correctly
+        subprocess.run(
+            [nssm_path, "set", SERVICE_NAME, "AppParameters", f'"{wrapper_path}"'],
             check=True,
             capture_output=True,
             timeout=5

@@ -23,9 +23,12 @@ if %ERRORLEVEL% neq 0 (
     exit /b 1
 )
 
-REM Run the installer
-echo Installing NCSI Resolver...
-python installer.py --install --quick
+REM Create an alternative installation directory without spaces
+set INSTALL_DIR=C:\NCSI_Resolver
+echo Installing NCSI Resolver to %INSTALL_DIR%...
+
+REM Run the installer with the alternative path
+python installer.py --install --install-dir=%INSTALL_DIR% --quick
 if %ERRORLEVEL% neq 0 (
     echo Installation failed. See log for details.
     pause
