@@ -308,6 +308,87 @@ class DirectoryManager:
         except Exception as e:
             logger.error(f"Error removing junction: {e}")
             return False
+        
+    def find_file(self, filename: str, search_paths: Optional[List[str]] = None) -> Optional[str]:
+        """
+        Search for a file in multiple locations.
+        
+        Args:
+            filename: Name of the file to find
+            search_paths: Optional list of paths to search in addition to defaults
+            
+        Returns:
+            str: Full path to the file if found, None otherwise
+        """
+        # Default search paths if none provided
+        if search_paths is None:
+            search_paths = []
+        
+        # Add standard search paths
+        standard_paths = [
+            # Current directory 
+            os.path.join(os.getcwd(), filename),
+            # Base directory
+            os.path.join(self.base_dir, filename),
+            # Script directory 
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), filename),
+            # Program Files location
+            os.path.join(os.environ.get('PROGRAMFILES', r"C:\Program Files"), "NCSI Resolver", filename),
+            # Standard installation location
+            os.path.join(r"C:\NCSI_Resolver", filename),
+            # Local appdata location
+            os.path.join(os.environ.get('LOCALAPPDATA', os.path.expanduser('~')), "NCSI_Resolver", filename)
+        ]
+        
+        # Combine user-provided and standard paths
+        all_paths = search_paths + standard_paths
+        
+        # Search for the file
+        for path in all_paths:
+            if os.path.exists(path):
+                logger.info(f"Found file {filename} at {path}")
+                return path
+        
+        logger.warning(f"File {filename} not found in any of the search paths")
+        return None
+
+    def copy_file_to_destination(self, source_file: str, destination_dir: str, new_filename: Optional[str] = None) -> Optional[str]:
+        """
+        Copy a file to a destination directory.
+        
+        Args:
+            source_file: Path to source file
+            destination_dir: Destination directory
+            new_filename: Optional new filename (if None, keep original name)
+            
+        Returns:
+            str: Path to the destination file if successful, None otherwise
+        """
+        try:
+            # Check if source file exists
+            if not os.path.exists(source_file):
+                logger.error(f"Source file {source_file} not found")
+                return None
+            
+            # Ensure destination directory exists
+            os.makedirs(destination_dir, exist_ok=True)
+            
+            # Determine destination filename
+            if new_filename is None:
+                new_filename = os.path.basename(source_file)
+            
+            # Full destination path
+            destination_path = os.path.join(destination_dir, new_filename)
+            
+            # Copy the file
+            import shutil
+            shutil.copy2(source_file, destination_path)
+            logger.info(f"Copied {source_file} to {destination_path}")
+            
+            return destination_path
+        except Exception as e:
+            logger.error(f"Error copying file {source_file} to {destination_dir}: {e}")
+            return None
 
 # Create a simple test function
 def test_directory_manager():

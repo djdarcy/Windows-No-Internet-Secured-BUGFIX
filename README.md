@@ -2,7 +2,7 @@
 
 ![NCSI Resolver Banner](docs/images/banner.png)
 [![GitHub Workflow Status](https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/actions/workflows/python.yml/badge.svg)](https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/actions)
-![Version](https://img.shields.io/badge/version-0.7.0--alpha-blue)
+![Version](https://img.shields.io/badge/version-0.7.1--alpha-blue)
 ![Python](https://img.shields.io/badge/python-3.8%2B-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
@@ -34,6 +34,10 @@ For those curious about the innerworkings of NCSI, the official documentation ca
 - 💻 **Windows service** for automatic operation on startup
 - 📊 **Diagnostic logging** for understanding connectivity issues
 - ⚡ **Wi-Fi adapter optimization** for connection stability
+- 🔒 **Security monitoring** for tracking and detecting suspicious connection attempts
+- 🔬 **Advanced network diagnostics** with layered testing (ICMP, DNS, HTTP, HTTPS)
+- 🧪 **Comprehensive installation verification** to ensure proper setup
+- 🖥️ **Interactive diagnostic page** when accessing the server directly
 
 ## Installation
 
@@ -47,7 +51,7 @@ For those curious about the innerworkings of NCSI, the official documentation ca
 
 1. Download the latest release from the [Releases page](https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/releases)
 2. Extract the ZIP file to a temporary location
-3. Right-click on `install.bat` and select "Run as administrator"
+3. Right-click on `_install.bat` and select "Run as administrator"
 
 The installer will:
 - Configure Windows system settings
@@ -67,6 +71,21 @@ cd Windows-No-Internet-Secured-BUGFIX
 python installer.py --install
 ```
 
+### Installation Options
+
+You can customize the installation with various options:
+
+```cmd
+# Install to a custom directory
+python installer.py --install --install-dir="C:\Custom Path\NCSI Resolver"
+
+# Use a different port (if port 80 is in use)
+python installer.py --install --port=8080
+
+# Enable debug logging
+python installer.py --install --debug
+```
+
 ## Usage
 
 Once installed, the NCSI Resolver runs automatically in the background. There's no user interface needed as it works silently to ensure Windows correctly detects internet connectivity.
@@ -78,6 +97,20 @@ To check the current status:
 ```cmd
 python installer.py --check
 ```
+
+### Advanced Diagnostics
+
+To run advanced network diagnostics:
+
+```cmd
+python test_installation.py --verbose
+```
+
+This comprehensive test will check:
+- System configuration (registry, hosts file)
+- Service installation and status
+- Network connectivity at multiple layers
+- Troubleshoot any detected issues
 
 ### Service Management
 
@@ -96,6 +129,19 @@ You can test if the resolver is working by:
 
 If you see "Microsoft Connect Test", the server is running correctly.
 
+You can also visit `http://localhost/redirect` in your browser to see an interactive diagnostic page.
+
+## Security Features
+
+NCSI Resolver now includes basic security monitoring that:
+
+- Tracks connection attempts to the service
+- Detects potential scanning or probing activity
+- Logs suspicious connection patterns
+- Provides a simple IDS-like capability
+
+Security logs are stored in the `Logs` directory of your installation.
+
 ## Uninstallation
 
 To completely remove NCSI Resolver:
@@ -112,6 +158,8 @@ NCSI Resolver functions by:
 3. Verifying actual internet connectivity using multiple methods (ICMP, DNS, HTTP)
 4. Updating the Windows registry to reference the local server
 5. Running as a Windows service to ensure continuous operation
+6. Monitoring and logging connection attempts for security purposes
+7. Providing diagnostics to help troubleshoot connectivity issues
 
 ## Troubleshooting
 
@@ -120,12 +168,25 @@ NCSI Resolver functions by:
 - **Service won't start**: Ensure port 80 is not in use by other applications
 - **"No Internet" still showing**: Restart the Network Location Awareness service (`net stop NlaSvc && net start NlaSvc`)
 - **Applications still offline**: Some applications may need to be restarted to recognize the new connectivity status
+- **Port conflict**: Use the `--port` option during installation to specify an alternative port
+
+### Advanced Troubleshooting
+
+For more in-depth troubleshooting, run the comprehensive test script:
+
+```cmd
+python test_installation.py --verbose
+```
+
+This will check all aspects of the installation and provide specific recommendations for fixing issues.
 
 ### Logs
 
 Check logs at:
-- Service logs: `C:\Program Files\NCSI Resolver\ncsi_resolver.log`
-- Service output: `C:\Program Files\NCSI Resolver\service_output.log`
+- Service logs: `C:\Program Files\NCSI Resolver\Logs\ncsi_resolver.log`
+- Service output: `C:\Program Files\NCSI Resolver\Logs\service_output.log`
+- Security logs: `C:\Program Files\NCSI Resolver\Logs\security.log`
+- Detailed debug: `C:\Program Files\NCSI Resolver\Logs\ncsi_debug.log`
 
 ## Contribution
 

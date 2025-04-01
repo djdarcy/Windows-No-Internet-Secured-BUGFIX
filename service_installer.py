@@ -55,7 +55,7 @@ try:
     __description__ = __version_info__["description"]
 except ImportError:
     # Fallback version info if version.py is missing
-    __version__ = "0.7.0"
+    __version__ = "0.7.1"
     __description__ = "NCSI Resolver Service Installer"
 
 # Import system configuration module
@@ -105,7 +105,6 @@ DEFAULT_INSTALL_DIR = r"C:\Program Files\NCSI Resolver"
 DEFAULT_PORT = 80
 NSSM_URL = "https://nssm.cc/release/nssm-2.24.zip"
 # Define TIMEOUT at the module level - FIX
-global TIMEOUT
 TIMEOUT = 30  # seconds
 BACKUP_DIR = os.path.join(os.environ.get('LOCALAPPDATA', os.path.expanduser('~')), "NCSI_Resolver", "Backups")
 
@@ -280,7 +279,9 @@ def create_service_files(install_dir: str, port: int = DEFAULT_PORT) -> bool:
             {"src": os.path.join(source_dir, "NCSIresolver", "network_diagnostics.py"), 
             "dst": os.path.join(install_dir, "network_diagnostics.py")},
             {"src": os.path.join(source_dir, "NCSIresolver", "security_monitoring.py"), 
-            "dst": os.path.join(install_dir, "security_monitoring.py")}
+            "dst": os.path.join(install_dir, "security_monitoring.py")},
+            {"src": os.path.join(source_dir, "NCSIresolver", "Windows_Defaults.reg"), 
+            "dst": os.path.join(install_dir, "Windows_Defaults.reg")}
         ]
         
         # Count of successfully copied files
@@ -352,6 +353,20 @@ def create_service_files(install_dir: str, port: int = DEFAULT_PORT) -> bool:
         except Exception as e:
             logger.warning(f"Could not create all directory junctions: {e}")
             # This is not critical, so we continue
+        
+        # Copy Windows_Defaults.reg to backup directory
+        windows_defaults_src = os.path.join(install_dir, "Windows_Defaults.reg")
+        windows_defaults_dst = os.path.join(backup_dir, "Windows_Defaults.reg")
+
+        if os.path.exists(windows_defaults_src):
+            try:
+                if(not os.path.exists(windows_defaults_dst)):
+                    shutil.move(windows_defaults_src, windows_defaults_dst)
+                logger.info(f"Moved Windows_Defaults.reg to backup directory: {backup_dir}")
+            except Exception as e:
+                logger.warning(f"Failed to move Windows_Defaults.reg to backup directory: {e}")
+        else:
+            logger.warning(f"Windows_Defaults.reg not found in {install_dir}, skipping backup copy")
         
         logger.info(f"Created service files in {install_dir}")
         return True
@@ -782,6 +797,7 @@ def verify_installation(install_dir: str) -> Dict[str, Union[bool, str]]:
 
 def main():
     """Main entry point when running as a script."""
+    global TIMEOUT
     parser = argparse.ArgumentParser(description="NCSI Resolver Service Installer")
     
     # Define command actions
@@ -808,7 +824,6 @@ def main():
         logger.setLevel(logging.DEBUG)
     
     # Use timeout from args if specified
-    global timeout
     TIMEOUT = args.timeout
     
     # Check if running on Windows

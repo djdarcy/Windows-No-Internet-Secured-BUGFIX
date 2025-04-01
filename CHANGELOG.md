@@ -5,6 +5,76 @@ All notable changes to the "Windows (No Internet, Secured) BUGFIX" NCSI Resolver
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.1-alpha] - 2025-04-01
+- First major release
+- Minor bug fixes (CI/CD, flake8, and other CI/CD related issues)
+- Documentation updates
+- Improved error handling and logging
+
+## [0.7.0-alpha] - 2025-04-01
+
+### Added
+- Network Diagnostics module with layered testing (ICMP, DNS, HTTP, HTTPS)
+- Security Monitoring feature to detect and log suspicious connection attempts
+- Enhanced interactive HTML redirect page with diagnostics and more
+- Detailed installation test script (test_installation.py)
+- Windows default registry settings file for easier recovery
+- Service start verification with connection testing
+
+### Fixed
+- Socket binding issue by using all interfaces (0.0.0.0) instead of specific IP
+- Better error handling during socket binding with enhanced logging
+- Enhanced service logging with debug information for troubleshooting
+- Scope issues with TIMEOUT variable in service_installer.py (fixes Flake8 error)
+
+### Changed
+- Deprecated test_connectivity.py in favor of new modular network_diagnostics.py
+- Improved redirect.html page with interactive features and modern design
+- Enhanced installation process with better error detection and reporting
+- Updated version to 0.7.0-alpha
+
+## [0.6.0-alpha] - 2025-04-01
+
+### Added
+- Modular code structure with dedicated NCSIresolver package
+- Configuration file (config.json) to replace hardcoded values
+- Firewall helper module for managing Windows Firewall rules
+- Improved service wrapper with enhanced error handling
+- Static file handling instead of code-generated content
+- Junction points between installation and backup directories
+- Support for non-WiFi systems with better detection
+- Documentation on Wi-Fi power management settings
+
+### Fixed
+- Service installation bugs and reliability issues
+- Better handling of paths with spaces
+- Improved port conflict detection and handling
+
+## [0.5.4-alpha] - 2025-04-01
+
+### Added
+- Enhanced logging for service_installer.py to track installation issues
+
+## [0.5.3-alpha] - 2025-03-31
+
+### Added
+- Improved port handling and conflict detection
+- Documentation on Wi-Fi Power Management Settings
+- Junction points between installation and backup directories
+
+## [0.5.2-alpha] - 2025-03-31
+
+### Fixed
+- Enhanced registry backup and restoration process
+
+## [0.5.1-alpha] - 2025-03-31
+
+### Fixed
+- Path handling for files with spaces
+- Simplified service wrapper
+- Modified default installation directory to C:\NCSI_Resolver
+- Improved NSSM download with caching
+
 ## [0.5.0-alpha] - 2025-03-31
 
 ### Added

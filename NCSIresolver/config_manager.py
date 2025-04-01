@@ -29,17 +29,19 @@ DEFAULT_CONFIG_PATHS = [
     "config.json",
     # Script directory
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json"),
+    # NCSIresolver subdirectory (used for install)
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "NCSIresolver", "config.json"),
     # Parent directory (repository root)
     os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.json"),
     # Installation directory (if different from script directory)
     os.path.join(os.environ.get('PROGRAMFILES', r"C:\Program Files"), "NCSI Resolver", "config.json"),
-    # Custom installation directory
+    # Custom installation directory 
     r"C:\NCSI_Resolver\config.json"
 ]
 
 # Default configuration values if no config file is found
 DEFAULT_CONFIG = {
-    "version": "6.0.0",
+    "version": "0.7.1",
     "description": "Windows Network Connectivity Status Indicator Resolver",
     "installation": {
         "default_dir": "C:\\Program Files\\NCSI Resolver",

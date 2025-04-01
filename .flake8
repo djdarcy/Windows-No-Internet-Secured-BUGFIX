@@ -1,6 +1,6 @@
 [flake8]
 max-line-length = 100
-exclude = .git,__pycache__,build,dist
+exclude = .git,__pycache__,build,dist,private,revisions
 ignore = E203, W503
 per-file-ignores =
     # Ignore imported but unused in __init__.py

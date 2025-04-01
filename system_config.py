@@ -962,6 +962,42 @@ def check_configuration() -> Dict[str, Union[str, bool]]:
     
     return result
 
+def create_windows_defaults_reg(target_path: str) -> bool:
+    """
+    Create the Windows default registry settings file at the specified path.
+    
+    Args:
+        target_path: Path where the file should be created
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(os.path.abspath(target_path)), exist_ok=True)
+        
+        # Create Windows default registry content with correct values
+        # Note: ActiveWebProbePath does NOT have a leading slash
+        content = """Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\NlaSvc\\Parameters\\Internet]
+"EnableActiveProbing"=dword:00000001
+"ActiveWebProbeHost"="www.msftconnecttest.com"
+"ActiveWebProbePath"="connecttest.txt"
+"ActiveWebProbeContent"="Microsoft Connect Test"
+"EnableActiveHTTPS"=dword:00000001
+"""
+        
+        # Write to file
+        with open(target_path, 'w') as f:
+            f.write(content)
+            
+        logger.info(f"Created Windows default registry settings file at {target_path}")
+        return True
+    except Exception as e:
+        logger.error(f"Error creating Windows default registry file: {e}")
+        return False
+
 def reset_configuration() -> bool:
     """
     Reset NCSI configuration to default Windows settings.
@@ -983,25 +1019,39 @@ def reset_configuration() -> bool:
     if not restore_registry_from_backup():
         success = False
     
-    # Write Windows default registry file
-    default_reg_path = os.path.join(BACKUP_DIR, "Windows-Defaults.reg")
+    # Create or find Windows default registry file
+    backup_dir = os.path.join(os.environ.get('LOCALAPPDATA', os.path.expanduser('~')), 
+                             "NCSI_Resolver", "Backups")
+    default_reg_path = os.path.join(backup_dir, "Windows_Defaults.reg")
     
-    # Create Windows default registry file if it doesn't exist
-    if not os.path.exists(default_reg_path):
-        try:
-            with open(default_reg_path, 'w') as f:
-                f.write("""Windows Registry Editor Version 5.00
-
-[HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\NlaSvc\\Parameters\\Internet]
-"EnableActiveProbing"=dword:00000001
-"ActiveWebProbeHost"="www.msftconnecttest.com"
-"ActiveWebProbePath"="connecttest.txt"
-"ActiveWebProbeContent"="Microsoft Connect Test"
-"EnableActiveHTTPS"=dword:00000001
-""")
-            logger.info(f"Created Windows default registry settings file at {default_reg_path}")
-        except Exception as e:
-            logger.error(f"Error creating Windows default registry file: {e}")
+    # Create DirectoryManager instance
+    try:
+        from directory_manager import DirectoryManager
+        dir_manager = DirectoryManager()
+        
+        # Try to find existing Windows_Defaults.reg file
+        windows_defaults_file = dir_manager.find_file("Windows_Defaults.reg")
+        
+        if windows_defaults_file:
+            # Copy file to backup location
+            copied_path = dir_manager.copy_file_to_destination(
+                windows_defaults_file, 
+                backup_dir, 
+                "Windows_Defaults.reg"
+            )
+            
+            if copied_path:
+                logger.info(f"Windows default registry settings file available at: {copied_path}")
+            else:
+                # If copy failed, create the file
+                create_windows_defaults_reg(default_reg_path)
+        else:
+            # If file not found, create it
+            create_windows_defaults_reg(default_reg_path)
+            
+    except ImportError:
+        # DirectoryManager not available, create file directly
+        create_windows_defaults_reg(default_reg_path)
     
     # If registry values were removed, suggest restoring defaults
     reg_key = winreg.OpenKey(
