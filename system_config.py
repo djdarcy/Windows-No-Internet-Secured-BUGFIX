@@ -44,6 +44,7 @@ HOSTS_FILE_PATH = r"C:\Windows\System32\drivers\etc\hosts"
 NCSI_REGISTRY_KEY = r"SYSTEM\CurrentControlSet\Services\NlaSvc\Parameters\Internet"
 DEFAULT_NCSI_HOST = "www.msftconnecttest.com"
 DEFAULT_NCSI_IP = "127.0.0.1"
+TIMEOUT = 10
 
 def is_admin() -> bool:
     """
