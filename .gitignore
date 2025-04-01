@@ -1,0 +1,96 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pip environment / dependencies / distribution / packaging
+dist/
+build/
+.eggs/
+*.egg-info/
+*.egg
+Pipfile.lock
+poetry.lock
+
+# MyPy and type-checking
+.mypy_cache/
+.dmypy.json
+.pyre/
+
+# Virtual environments
+venv/
+.env/
+.venv/
+ENV/
+env.bak/
+env/
+
+# Testing / coverage
+.pytest_cache/
+.tox/
+coverage.*
+.cache/
+nosetests.xml
+*.cover
+#*.py,cover
+.hypothesis/
+
+# IDE files
+.idea/
+.vscode/
+*.code-workspace
+*.sublime-*
+.history/
+*.swp
+*.swo
+
+# Secrets
+private/
+*-private.*
+.env
+credentials.json
+*credentials*.json
+*token*.json
+*auth*.json
+config.json
+*-config.json
+
+# Logs
+*.log
+
+# Windows specific
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# NSSM temporary files
+nssm_download/
+
+# Installer artifacts
+*.exe
+
+# Environment variables
+.env
+
+# Test cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Temporary files
+logs/
+*.log
+*.tmp
+*.bak
+*.swp
+*backup*
+revisions/
+data/
+tmp/
+temp/
+.temp/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+desktop.ini

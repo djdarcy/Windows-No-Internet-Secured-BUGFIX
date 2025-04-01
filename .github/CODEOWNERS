@@ -1,0 +1,26 @@
+# These owners will be the default owners for everything in
+# the repo. Unless a later match takes precedence,
+# @djdarcy will be requested for review when someone opens a pull request.
+*       @djdarcy
+
+# GitHub CI/CD
+/.github/ @djdarcy
+
+# Core CLI implementation
+*.py    @djdarcy
+
+# Module directory
+#/.../ @djdarcy
+
+#Unit tests
+#/tests/ @djdarcy
+
+#Example configurations
+#/examples/ @djdarcy
+
+#Helper scripts
+#/scripts/ @djdarcy
+
+# Documentation
+#/docs/   @djdarcy
+*.md     @djdarcy

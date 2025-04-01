@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Question or Discussion
+    url: https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/discussions
+    about: Ask questions or discuss ideas that don't require a specific issue
+  - name: Documentation
+    url: https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/tree/main/docs
+    about: Check our documentation for help with setup and usage
