@@ -215,11 +215,13 @@ def create_service_files(install_dir: str, port: int = DEFAULT_PORT) -> bool:
         bool: True if successful, False otherwise
     """
     try:
+        logger.info(f"Creating installation directory at {install_dir}")
         # Create installation directory if it doesn't exist
         os.makedirs(install_dir, exist_ok=True)
         
         # Copy necessary files
         source_dir = os.path.dirname(os.path.abspath(__file__))
+        logger.debug(f"Using source directory: {source_dir}")
         
         # Copy Python scripts
         for filename in ["ncsi_server.py", "system_config.py"]:
@@ -235,9 +237,11 @@ def create_service_files(install_dir: str, port: int = DEFAULT_PORT) -> bool:
         
         # Create the service wrapper script with properly substituted port value
         wrapper_path = os.path.join(install_dir, "service_wrapper.py")
+        logger.info(f"Creating service wrapper at {wrapper_path}")
         
-        # Get the template content
-        service_wrapper_template = """#!/usr/bin/env python3
+        try:
+            # Get the template content with properly formatted triple-quoted strings
+            service_wrapper_template = """#!/usr/bin/env python3
 \"\"\"
 NCSI Resolver Service Wrapper
 
@@ -358,7 +362,7 @@ try:
     port = {0}  # This will be replaced with the actual port number
     
     # Fallback to default port if substitution failed or value is invalid
-    if not isinstance(port, int):
+    if not isinstance(port, int) or port <= 0 or port > 65535:
         logger.warning(f"Port value '{{port}}' is not valid, using default port 80")
         port = 80
     
@@ -374,13 +378,25 @@ except Exception as e:
     logger.error(f"Error starting NCSI Resolver service: {{e}}")
     sys.exit(1)
 """
-        
-        # Replace the port placeholder with the actual port
-        service_wrapper_content = service_wrapper_template.format(port)
-        
-        # Write the file
-        with open(wrapper_path, 'w') as f:
-            f.write(service_wrapper_content)
+            
+            # Replace the port placeholder with the actual port
+            logger.debug(f"Formatting service wrapper template with port {port}")
+            service_wrapper_content = service_wrapper_template.format(port)
+            
+            # Write the file
+            with open(wrapper_path, 'w') as f:
+                f.write(service_wrapper_content)
+            logger.info(f"Successfully created service wrapper at {wrapper_path}")
+            
+        except Exception as e:
+            logger.error(f"Error creating service wrapper script: {str(e)}")
+            # Print part of the error string to help diagnose issues
+            error_str = str(e)
+            if len(error_str) > 100:
+                logger.error(f"Error details (truncated): {error_str[:100]}...")
+            else:
+                logger.error(f"Error details: {error_str}")
+            return False
         
         # Create junction points for easier navigation
         try:
@@ -388,6 +404,7 @@ except Exception as e:
             backup_dir = os.path.join(os.environ.get('LOCALAPPDATA', os.path.expanduser('~')), 
                                     "NCSI_Resolver", "Backups")
             os.makedirs(backup_dir, exist_ok=True)
+            logger.debug(f"Created backup directory at {backup_dir}")
             
             # Create junction point in installation directory pointing to backups
             backup_link_path = os.path.join(install_dir, "Backups")
@@ -417,7 +434,10 @@ except Exception as e:
         return True
     
     except Exception as e:
-        logger.error(f"Error creating service files: {e}")
+        logger.error(f"Error creating service files: {str(e)}")
+        # Add more context to the error
+        import traceback
+        logger.debug(f"Stack trace: {traceback.format_exc()}")
         return False
 
 # Fix for the install_service function in service_installer.py
