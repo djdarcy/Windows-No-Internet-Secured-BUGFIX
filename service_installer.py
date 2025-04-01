@@ -105,6 +105,7 @@ DEFAULT_INSTALL_DIR = r"C:\Program Files\NCSI Resolver"
 DEFAULT_PORT = 80
 NSSM_URL = "https://nssm.cc/release/nssm-2.24.zip"
 # Define TIMEOUT at the module level - FIX
+global TIMEOUT
 TIMEOUT = 30  # seconds
 BACKUP_DIR = os.path.join(os.environ.get('LOCALAPPDATA', os.path.expanduser('~')), "NCSI_Resolver", "Backups")
 
@@ -803,7 +804,6 @@ def main():
         logger.setLevel(logging.DEBUG)
     
     # Use timeout from args if specified
-    #global TIMEOUT
     TIMEOUT = args.timeout
     
     # Check if running on Windows
