@@ -1,9 +1,18 @@
 @echo off
+SETLOCAL
+
 REM install.bat - Installer for NCSI Resolver
 REM This batch file runs the installer script with admin privileges
 
 echo NCSI Resolver Installer
 echo =============================================
+
+REM Check if install directory was passed as parameter
+if "%~1"=="" (
+    set INSTALL_DIR=C:\NCSI_Resolver
+) else (
+    set INSTALL_DIR=%~1
+)
 
 REM Check for admin privileges
 NET SESSION >nul 2>&1
@@ -23,22 +32,19 @@ if %ERRORLEVEL% neq 0 (
     exit /b 1
 )
 
-REM Create an alternative installation directory without spaces
-set INSTALL_DIR=C:\NCSI_Resolver
+
+REM Run the installer with admin privileges and the alternative path
 echo Installing NCSI Resolver to %INSTALL_DIR%...
+python installer.py --install --install-dir="%INSTALL_DIR%" --verbose
 
-REM Run the installer with the alternative path
-python installer.py --install --install-dir=%INSTALL_DIR% --quick
-if %ERRORLEVEL% neq 0 (
-    echo Installation failed. See log for details.
-    pause
-    exit /b 1
-)
+REM Check installation
+echo.
+echo Verifying installation...
+python installer.py --check --install-dir="%INSTALL_DIR%" --nobanner
 
 echo.
-echo NCSI Resolver has been installed successfully!
-echo.
-echo The service is now running in the background.
-echo Windows should now correctly detect your internet connection.
+echo Installation process completed.
+echo If there are any issues, please check the logs in the installation directory.
 echo.
 pause
+ENDLOCAL

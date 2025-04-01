@@ -2,7 +2,7 @@
 
 ## Overview
 
-The NCSI Resolver includes Wi-Fi power management optimizations as part of its installation process. These settings help maintain stable network connections, which is crucial for reliable internet connectivity detection.
+The NCSI Resolver includes Wi-Fi power management optimizations as part of its installation process. These settings help maintain stable network connections, which matters for reliable internet connectivity detection.
 
 ## What Power Management Settings Are Modified
 

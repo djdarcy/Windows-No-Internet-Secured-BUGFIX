@@ -20,6 +20,32 @@ import zipfile
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
+# Try importing our custom modules
+try:
+    # UPDATED: Changed import paths to reference the NCSIresolver subdirectory
+    from NCSIresolver.config_manager import get_config
+    from NCSIresolver.directory_manager import DirectoryManager
+    from NCSIresolver.logger import get_logger
+except ImportError:
+    # If imported outside the package, define minimal versions
+    config = None
+    class DirectoryManager:
+        def __init__(self, base_dir=None):
+            pass
+        def create_directory(self, path, description=None):
+            os.makedirs(path, exist_ok=True)
+            return path
+        def create_junction_pair(self, dir1, dir2, link1_name=None, link2_name=None):
+            return True
+
+    def get_logger(name, verbosity=0, log_file=None):
+        logger = logging.getLogger(name)
+        logger.setLevel(logging.INFO)
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+        logger.addHandler(handler)
+        return logger
+
 try:
     from version import get_version_info
     
@@ -29,9 +55,8 @@ try:
     __description__ = __version_info__["description"]
 except ImportError:
     # Fallback version info if version.py is missing
-    __version__ = "0.5.0"
+    __version__ = "0.6.0"
     __description__ = "NCSI Resolver Service Installer"
-
 
 # Import system configuration module
 try:
@@ -69,23 +94,33 @@ except ImportError:
                 sys.exit(1)
 
 # Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
-)
-logger = logging.getLogger('service_installer')
+logger = get_logger('service_installer')
 
-# Constants
+# Define constants (will use config_manager values if available)
+# Define TIMEOUT here at the module level - FIX for the syntax error
 SERVICE_NAME = "NCSIResolver"
 SERVICE_DISPLAY_NAME = "NCSI Resolver Service"
 SERVICE_DESCRIPTION = "Resolves Windows Network Connectivity Status Indicator issues by serving local NCSI test endpoints."
 DEFAULT_INSTALL_DIR = r"C:\Program Files\NCSI Resolver"
 DEFAULT_PORT = 80
 NSSM_URL = "https://nssm.cc/release/nssm-2.24.zip"
+# Define TIMEOUT at the module level - FIX
 TIMEOUT = 30  # seconds
+BACKUP_DIR = os.path.join(os.environ.get('LOCALAPPDATA', os.path.expanduser('~')), "NCSI_Resolver", "Backups")
+
+# Get configuration (if available)
+if 'get_config' in globals():
+    config = get_config()
+    # Get constants from config
+    SERVICE_NAME = config.get("installation.service_name", "NCSIResolver")
+    SERVICE_DISPLAY_NAME = config.get("installation.service_display_name", "NCSI Resolver Service")
+    SERVICE_DESCRIPTION = config.get("installation.service_description",
+                                    "Resolves Windows Network Connectivity Status Indicator issues by serving local NCSI test endpoints.")
+    DEFAULT_INSTALL_DIR = config.get("installation.default_dir", r"C:\Program Files\NCSI Resolver")
+    DEFAULT_PORT = config.get("server.default_port", 80)
+    NSSM_URL = config.get("installation.nssm_url", "https://nssm.cc/release/nssm-2.24.zip")
+    TIMEOUT = config.get("installation.timeout", 30)  # seconds
+    BACKUP_DIR = config.get("server.backup_dir", os.path.join(os.environ.get('LOCALAPPDATA', os.path.expanduser('~')), "NCSI_Resolver", "Backups"))
 
 def check_nssm_installed() -> bool:
     """
@@ -223,224 +258,104 @@ def create_service_files(install_dir: str, port: int = DEFAULT_PORT) -> bool:
         source_dir = os.path.dirname(os.path.abspath(__file__))
         logger.debug(f"Using source directory: {source_dir}")
         
-        # Copy Python scripts
-        for filename in ["ncsi_server.py", "system_config.py"]:
-            src_path = os.path.join(source_dir, filename)
-            dst_path = os.path.join(install_dir, filename)
+        # Files to copy
+        files_to_copy = [
+            {"src": os.path.join(source_dir, "NCSIresolver", "ncsi_server.py"), 
+             "dst": os.path.join(install_dir, "ncsi_server.py")},
+            {"src": os.path.join(source_dir, "system_config.py"), 
+             "dst": os.path.join(install_dir, "system_config.py")},
+            {"src": os.path.join(source_dir, "NCSIresolver", "service_wrapper.py"), 
+             "dst": os.path.join(install_dir, "service_wrapper.py")},
+            {"src": os.path.join(source_dir, "NCSIresolver", "redirect.html"), 
+             "dst": os.path.join(install_dir, "redirect.html")},
+            {"src": os.path.join(source_dir, "NCSIresolver", "config.json"), 
+             "dst": os.path.join(install_dir, "config.json")},
+            {"src": os.path.join(source_dir, "NCSIresolver", "config_manager.py"), 
+             "dst": os.path.join(install_dir, "config_manager.py")},
+            {"src": os.path.join(source_dir, "NCSIresolver", "logger.py"), 
+             "dst": os.path.join(install_dir, "logger.py")},
+            {"src": os.path.join(source_dir, "NCSIresolver", "directory_manager.py"), 
+             "dst": os.path.join(install_dir, "directory_manager.py")}
+        ]
+        
+        # Count of successfully copied files
+        copied_files = 0
+        
+        # Copy files using the updated structure
+        for file_info in files_to_copy:
+            src_path = file_info["src"]
+            dst_path = file_info["dst"]
             
             if os.path.exists(src_path):
                 shutil.copy2(src_path, dst_path)
-                logger.info(f"Copied {filename} to {dst_path}")
+                logger.info(f"Copied {os.path.basename(src_path)} to {dst_path}")
+                copied_files += 1
             else:
-                logger.error(f"Source file {src_path} not found")
+                logger.warning(f"Source file {src_path} not found, skipping")
+        
+        # Check if we at least copied the essential files
+        essential_files = ["ncsi_server.py", "system_config.py", "service_wrapper.py"]
+        for filename in essential_files:
+            if not os.path.exists(os.path.join(install_dir, filename)):
+                logger.error(f"Essential file {filename} was not copied")
                 return False
         
-        # Create the service wrapper script with properly substituted port value
-        wrapper_path = os.path.join(install_dir, "service_wrapper.py")
-        logger.info(f"Creating service wrapper at {wrapper_path}")
-        
+        # Update configuration with the port setting
+        config_path = os.path.join(install_dir, "config.json")
         try:
-            # Get the template content with properly formatted triple-quoted strings
-            service_wrapper_template = """#!/usr/bin/env python3
-\"\"\"
-NCSI Resolver Service Wrapper
-
-This script is used to start the NCSI server as a Windows service.
-This is a simplified version designed for maximum compatibility.
-\"\"\"
-
-import os
-import sys
-import logging
-import socket
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from pathlib import Path
-
-# Get the current directory (where this script is located)
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# Set up logging to file
-LOG_PATH = os.path.join(CURRENT_DIR, "ncsi_resolver.log")
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(LOG_PATH),
-        logging.StreamHandler(sys.stdout)
-    ]
-)
-logger = logging.getLogger('ncsi_service')
-
-# NCSI content constants - embed directly to avoid file access issues
-NCSI_TEXT = b"Microsoft Connect Test"
-REDIRECT_HTML = b\"\"\"<!DOCTYPE html>
-<html>
-<head>
-    <title>Connection Success</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 40px;
-            background-color: #f7f7f7;
-        }
-        .container {
-            background-color: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            max-width: 500px;
-            margin: 0 auto;
-        }
-        h1 {
-            color: #0078d7;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Connection Successful</h1>
-        <p>Your device is connected to the internet.</p>
-        <p>This page is served by the NCSI Resolver utility running on your local network.</p>
-    </div>
-</body>
-</html>
-\"\"\"
-
-# Define a simple request handler
-class NCSIHandler(BaseHTTPRequestHandler):
-    def log_message(self, format, *args):
-        \"\"\"Log messages to our logger instead of stderr.\"\"\"
-        logger.info(format % args)
-        
-    def do_GET(self):
-        \"\"\"Handle GET requests.\"\"\"
-        client_ip = self.client_address[0]
-        logger.info(f"Request from {{client_ip}} for {{self.path}}")
-        
-        # Handle NCSI connectivity test paths
-        if self.path == "/connecttest.txt" or self.path == "/ncsi.txt":
-            self.send_response(200)
-            self.send_header("Content-type", "text/plain")
-            self.send_header("Content-Length", str(len(NCSI_TEXT)))
-            self.end_headers()
-            self.wfile.write(NCSI_TEXT)
-            
-        # Handle NCSI redirect endpoint (used for captive portal detection)
-        elif self.path == "/redirect":
-            self.send_response(200)
-            self.send_header("Content-type", "text/html")
-            self.send_header("Content-Length", str(len(REDIRECT_HTML)))
-            self.end_headers()
-            self.wfile.write(REDIRECT_HTML)
-            
-        # Return a 404 for any other paths
-        else:
-            self.send_error(404, "Not Found")
-
-def get_local_ip():
-    \"\"\"Get the local IP address of the machine.\"\"\"
-    try:
-        # Create a socket to determine the local IP
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        local_ip = s.getsockname()[0]
-        s.close()
-        return local_ip
-    except Exception as e:
-        logger.error(f"Failed to get local IP: {{e}}")
-        return "0.0.0.0"  # Fall back to all interfaces
-
-# Main service code
-try:
-    logger.info("Starting NCSI Resolver service...")
-    
-    # Get local IP or use all interfaces
-    host = get_local_ip()
-    
-    # Define port - hardcoded for reliability
-    port = {0}  # This will be replaced with the actual port number
-    
-    # Fallback to default port if substitution failed or value is invalid
-    if not isinstance(port, int) or port <= 0 or port > 65535:
-        logger.warning(f"Port value '{{port}}' is not valid, using default port 80")
-        port = 80
-    
-    logger.info(f"Creating server on {{host}}:{{port}}")
-    
-    # Create and start the server
-    httpd = HTTPServer((host, port), NCSIHandler)
-    
-    logger.info(f"NCSI Resolver server running on {{host}}:{{port}}")
-    httpd.serve_forever()
-    
-except Exception as e:
-    logger.error(f"Error starting NCSI Resolver service: {{e}}")
-    sys.exit(1)
-"""
-            
-            # Replace the port placeholder with the actual port
-            logger.debug(f"Formatting service wrapper template with port {port}")
-            service_wrapper_content = service_wrapper_template.format(port)
-            
-            # Write the file
-            with open(wrapper_path, 'w') as f:
-                f.write(service_wrapper_content)
-            logger.info(f"Successfully created service wrapper at {wrapper_path}")
-            
-        except Exception as e:
-            logger.error(f"Error creating service wrapper script: {str(e)}")
-            # Print part of the error string to help diagnose issues
-            error_str = str(e)
-            if len(error_str) > 100:
-                logger.error(f"Error details (truncated): {error_str[:100]}...")
-            else:
-                logger.error(f"Error details: {error_str}")
-            return False
-        
-        # Create junction points for easier navigation
-        try:
-            # Ensure backup directory exists
-            backup_dir = os.path.join(os.environ.get('LOCALAPPDATA', os.path.expanduser('~')), 
-                                    "NCSI_Resolver", "Backups")
-            os.makedirs(backup_dir, exist_ok=True)
-            logger.debug(f"Created backup directory at {backup_dir}")
-            
-            # Create junction point in installation directory pointing to backups
-            backup_link_path = os.path.join(install_dir, "Backups")
-            if not os.path.exists(backup_link_path):
-                subprocess.run(
-                    ["cmd", "/c", "mklink", "/J", backup_link_path, backup_dir],
-                    check=False,
-                    capture_output=True
-                )
-                logger.info(f"Created junction point from {backup_link_path} to {backup_dir}")
-            
-            # Create junction point in backup directory pointing to installation
-            install_link_path = os.path.join(backup_dir, "Installation")
-            if not os.path.exists(install_link_path):
-                subprocess.run(
-                    ["cmd", "/c", "mklink", "/J", install_link_path, install_dir],
-                    check=False,
-                    capture_output=True
-                )
-                logger.info(f"Created junction point from {install_link_path} to {install_dir}")
+            if os.path.exists(config_path):
+                # Load configuration
+                with open(config_path, 'r') as f:
+                    import json
+                    config_data = json.load(f)
                 
+                # Update port
+                if 'server' not in config_data:
+                    config_data['server'] = {}
+                config_data['server']['default_port'] = port
+                
+                # Save updated configuration
+                with open(config_path, 'w') as f:
+                    json.dump(config_data, f, indent=2)
+                
+                logger.info(f"Updated configuration with port {port}")
+            else:
+                logger.warning("Configuration file not found, port will use default value")
         except Exception as e:
-            logger.warning(f"Could not create directory junctions: {e}")
+            logger.warning(f"Failed to update configuration: {e}")
+        
+        # Create directory structure with junction points
+        try:
+            # Create DirectoryManager instance
+            dir_manager = DirectoryManager(install_dir)
+            
+            # Set up directory structure
+            backup_dir = os.path.join(os.environ.get('LOCALAPPDATA', os.path.expanduser('~')), 
+                                     "NCSI_Resolver", "Backups")
+            logs_dir = os.path.join(os.environ.get('LOCALAPPDATA', os.path.expanduser('~')), 
+                                   "NCSI_Resolver", "Logs")
+            
+            # Ensure directories exist
+            os.makedirs(backup_dir, exist_ok=True)
+            os.makedirs(logs_dir, exist_ok=True)
+            
+            # Create junction points
+            dir_manager.create_junction_pair(install_dir, backup_dir, "Backups", "Installation")
+            dir_manager.create_junction_pair(install_dir, logs_dir, "Logs", "Installation")
+            
+            logger.info("Created directory structure with junction points")
+        except Exception as e:
+            logger.warning(f"Could not create all directory junctions: {e}")
             # This is not critical, so we continue
         
         logger.info(f"Created service files in {install_dir}")
         return True
     
     except Exception as e:
-        logger.error(f"Error creating service files: {str(e)}")
-        # Add more context to the error
+        logger.error(f"Error creating service files: {e}")
         import traceback
         logger.debug(f"Stack trace: {traceback.format_exc()}")
         return False
-
-# Fix for the install_service function in service_installer.py
 
 def install_service(install_dir: str, nssm_path: str) -> bool:
     """
@@ -454,8 +369,11 @@ def install_service(install_dir: str, nssm_path: str) -> bool:
         bool: True if successful, False otherwise
     """
     try:
-        # Path to wrapper script - ensure it's properly quoted for spaces
+        # Path to wrapper script
         wrapper_path = os.path.join(install_dir, "service_wrapper.py")
+        if not os.path.exists(wrapper_path):
+            logger.error(f"Service wrapper script not found at {wrapper_path}")
+            return False
         
         # Check if Python is in PATH
         python_path = sys.executable
@@ -484,16 +402,17 @@ def install_service(install_dir: str, nssm_path: str) -> bool:
             pass
         
         # Install the service - properly quote paths with spaces
-        command = f'"{python_path}" "{wrapper_path}"'
+        logger.info(f"Installing service {SERVICE_NAME} to run {wrapper_path}")
         install_result = subprocess.run(
             [nssm_path, "install", SERVICE_NAME, python_path, wrapper_path],
-            check=True,
+            check=False,
             capture_output=True,
             timeout=10
         )
         
         if install_result.returncode != 0:
-            logger.error(f"Failed to install service: {install_result.stderr.decode()}")
+            stderr = install_result.stderr.decode() if install_result.stderr else "Unknown error"
+            logger.error(f"Failed to install service: {stderr}")
             return False
         
         # Configure service properties
@@ -511,7 +430,7 @@ def install_service(install_dir: str, nssm_path: str) -> bool:
             timeout=5
         )
         
-        # Set startup directory - properly quoted for spaces
+        # Set startup directory
         subprocess.run(
             [nssm_path, "set", SERVICE_NAME, "AppDirectory", install_dir],
             check=True,
@@ -535,8 +454,12 @@ def install_service(install_dir: str, nssm_path: str) -> bool:
             timeout=5
         )
         
-        # Set stdout/stderr logging
-        log_path = os.path.join(install_dir, "service_output.log")
+        # UPDATED: Set stdout/stderr logging to use the Logs directory
+        logs_dir = os.path.join(install_dir, "Logs")
+        if not os.path.exists(logs_dir):
+            os.makedirs(logs_dir, exist_ok=True)
+            
+        log_path = os.path.join(logs_dir, "service_output.log")
         subprocess.run(
             [nssm_path, "set", SERVICE_NAME, "AppStdout", log_path],
             check=True,
@@ -567,7 +490,8 @@ def install_service(install_dir: str, nssm_path: str) -> bool:
         return False
         
     except subprocess.CalledProcessError as e:
-        logger.error(f"Error installing service: {e.stderr.decode() if e.stderr else str(e)}")
+        stderr = e.stderr.decode() if e.stderr else str(e)
+        logger.error(f"Error installing service: {stderr}")
         return False
     
     except Exception as e:
@@ -582,6 +506,7 @@ def start_service() -> bool:
         bool: True if successful, False otherwise
     """
     try:
+        logger.info(f"Starting service {SERVICE_NAME}")
         subprocess.run(
             ["net", "start", SERVICE_NAME],
             check=True,
@@ -617,6 +542,7 @@ def stop_service() -> bool:
         bool: True if successful, False otherwise
     """
     try:
+        logger.info(f"Stopping service {SERVICE_NAME}")
         subprocess.run(
             ["net", "stop", SERVICE_NAME],
             check=True,
@@ -673,6 +599,7 @@ def uninstall_service(nssm_path: str) -> bool:
         time.sleep(2)
         
         # Uninstall the service
+        logger.info(f"Removing service {SERVICE_NAME}")
         subprocess.run(
             [nssm_path, "remove", SERVICE_NAME, "confirm"],
             check=True,
@@ -688,7 +615,8 @@ def uninstall_service(nssm_path: str) -> bool:
         return False
         
     except subprocess.CalledProcessError as e:
-        logger.error(f"Error uninstalling service: {e.stderr.decode() if e.stderr else str(e)}")
+        stderr = e.stderr.decode() if e.stderr else str(e)
+        logger.error(f"Error uninstalling service: {stderr}")
         return False
     
     except Exception as e:
@@ -710,6 +638,7 @@ def check_service_status() -> Dict[str, Union[bool, str]]:
     
     try:
         # Check if service is installed
+        logger.info(f"Checking status of service {SERVICE_NAME}")
         sc_query = subprocess.run(
             ["sc", "query", SERVICE_NAME],
             capture_output=True,
@@ -718,6 +647,7 @@ def check_service_status() -> Dict[str, Union[bool, str]]:
         )
         
         if sc_query.returncode != 0:
+            logger.info(f"Service {SERVICE_NAME} is not installed")
             return result
         
         # Service is installed
@@ -736,6 +666,7 @@ def check_service_status() -> Dict[str, Union[bool, str]]:
         else:
             result["status"] = "Unknown"
         
+        logger.info(f"Service {SERVICE_NAME} status: {result['status']}")
         return result
     
     except subprocess.TimeoutExpired:
@@ -746,6 +677,103 @@ def check_service_status() -> Dict[str, Union[bool, str]]:
     except Exception as e:
         logger.error(f"Error checking service status: {e}")
         return result
+
+def verify_installation(install_dir: str) -> Dict[str, Union[bool, str]]:
+    """
+    Verify the NCSI Resolver installation.
+    
+    Args:
+        install_dir: Installation directory
+        
+    Returns:
+        Dict: Verification results
+    """
+    result = {
+        "success": True,
+        "errors": [],
+        "files_ok": True,
+        "service_ok": False,
+        "registry_ok": False,
+        "hosts_ok": False,
+        "connection_ok": False
+    }
+    
+    # Check for essential files
+    essential_files = ["ncsi_server.py", "system_config.py", "service_wrapper.py"]
+    for filename in essential_files:
+        file_path = os.path.join(install_dir, filename)
+        if not os.path.exists(file_path):
+            result["files_ok"] = False
+            result["success"] = False
+            result["errors"].append(f"Essential file {filename} is missing")
+    
+    # Check service status
+    service_status = check_service_status()
+    result["service_ok"] = service_status.get("installed", False)
+    if not result["service_ok"]:
+        result["success"] = False
+        result["errors"].append("Service is not installed")
+    
+    # Check if service is running
+    if service_status.get("running", False):
+        result["service_running"] = True
+    else:
+        result["service_running"] = False
+        if result["service_ok"]:  # Only an error if service is installed
+            result["success"] = False
+            result["errors"].append("Service is installed but not running")
+    
+    # Try system_config check_configuration if available
+    try:
+        from system_config import check_configuration
+        config_status = check_configuration()
+        result["registry_ok"] = "ActiveWebProbeHost" in config_status.get("registry_settings", {})
+        result["hosts_ok"] = config_status.get("hosts_file_redirect") is not None
+        
+        if not result["registry_ok"]:
+            result["success"] = False
+            result["errors"].append("Registry settings are not properly configured")
+        
+        if not result["hosts_ok"]:
+            result["success"] = False
+            result["errors"].append("Hosts file is not properly configured")
+    except ImportError:
+        # Can't check system configuration
+        result["errors"].append("Could not verify system configuration")
+    
+    # Try to connect to the local NCSI server
+    try:
+        import socket
+        import time
+        
+        # Get local IP
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+        
+        # Try to connect to the NCSI server
+        port = 80  # Default port
+        
+        # Try multiple times
+        for _ in range(3):
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.settimeout(2)
+                s.connect((local_ip, port))
+                s.close()
+                result["connection_ok"] = True
+                break
+            except:
+                time.sleep(1)
+        
+        if not result["connection_ok"]:
+            result["success"] = False
+            result["errors"].append(f"Could not connect to NCSI server on {local_ip}:{port}")
+    except Exception as e:
+        result["errors"].append(f"Error checking server connection: {e}")
+    
+    return result
 
 def main():
     """Main entry point when running as a script."""
@@ -759,12 +787,14 @@ def main():
     action_group.add_argument("--stop", action="store_true", help="Stop the service")
     action_group.add_argument("--status", action="store_true", help="Check service status")
     action_group.add_argument("--restart", action="store_true", help="Restart the service")
+    action_group.add_argument("--verify", action="store_true", help="Verify installation")
     
     # Additional options
     parser.add_argument("--install-dir", default=DEFAULT_INSTALL_DIR, help=f"Installation directory (default: {DEFAULT_INSTALL_DIR})")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT, help=f"Port to use for the NCSI server (default: {DEFAULT_PORT})")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     parser.add_argument("--timeout", type=int, default=TIMEOUT, help=f"Timeout for operations in seconds (default: {TIMEOUT})")
+    parser.add_argument("-v", "--verbose", action="count", default=0, help="Increase verbosity (can be used multiple times)")
     
     args = parser.parse_args()
     
@@ -773,7 +803,8 @@ def main():
         logger.setLevel(logging.DEBUG)
     
     # Use timeout from args if specified
-    timeout_value = args.timeout
+    #global TIMEOUT
+    TIMEOUT = args.timeout
     
     # Check if running on Windows
     if platform.system() != "Windows":
@@ -781,7 +812,7 @@ def main():
         sys.exit(1)
     
     # Check admin privileges for actions that require them
-    if (args.install or args.uninstall or args.start or args.stop or args.restart) and not is_admin():
+    if (args.install or args.uninstall or args.start or args.stop or args.restart or args.verify) and not is_admin():
         logger.info("Administrative privileges required, requesting elevation...")
         
         # Build argument list for elevation
@@ -796,6 +827,8 @@ def main():
             elevate_args.append("--stop")
         elif args.restart:
             elevate_args.append("--restart")
+        elif args.verify:
+            elevate_args.append("--verify")
         
         if args.install_dir != DEFAULT_INSTALL_DIR:
             elevate_args.append(f"--install-dir={args.install_dir}")
@@ -808,6 +841,9 @@ def main():
             
         if args.timeout != TIMEOUT:
             elevate_args.append(f"--timeout={args.timeout}")
+            
+        if args.verbose > 0:
+            elevate_args.append("-" + "v" * args.verbose)
         
         run_as_admin(sys.argv[0], *elevate_args)
         return
@@ -821,6 +857,27 @@ def main():
         if status['installed']:
             print(f"  Status: {status['status']}")
         
+        return
+        
+    # Verify installation
+    if args.verify:
+        verify_results = verify_installation(args.install_dir)
+        
+        print(f"\nNCSI Resolver Installation Verification:")
+        print(f"  Overall status: {'Success' if verify_results['success'] else 'Issues detected'}")
+        print(f"  Files: {'OK' if verify_results['files_ok'] else 'Missing'}")
+        print(f"  Service: {'OK' if verify_results['service_ok'] else 'Not installed'}")
+        if verify_results['service_ok']:
+            print(f"  Service running: {'Yes' if verify_results.get('service_running', False) else 'No'}")
+        print(f"  Registry: {'OK' if verify_results['registry_ok'] else 'Not configured'}")
+        print(f"  Hosts file: {'OK' if verify_results['hosts_ok'] else 'Not configured'}")
+        print(f"  Server connection: {'OK' if verify_results['connection_ok'] else 'Failed'}")
+        
+        if verify_results['errors']:
+            print("\nErrors detected:")
+            for error in verify_results['errors']:
+                print(f"  - {error}")
+                
         return
     
     # Handle other actions
@@ -844,10 +901,22 @@ def main():
             sys.exit(1)
         
         # Start the service
-        if not start_service():
-            logger.warning("Service installed but could not be started")
+        service_started = start_service()
         
-        logger.info(f"NCSI Resolver service installed successfully at {args.install_dir}")
+        # Verify installation
+        verify_results = verify_installation(args.install_dir)
+        
+        if verify_results['success'] and service_started:
+            print("\nNCSI Resolver has been installed successfully")
+            print("The service is now running in the background.")
+            print("Windows should now correctly detect your internet connection.")
+        elif not service_started:
+            print("\nNCSI Resolver has been installed but the service failed to start.")
+            print("Please check the logs for errors and try starting the service manually.")
+        else:
+            print("\nNCSI Resolver installation completed with some issues:")
+            for error in verify_results['errors']:
+                print(f"  - {error}")
     
     elif args.uninstall:
         # Get NSSM path
@@ -861,19 +930,34 @@ def main():
             logger.error("Failed to uninstall service")
             sys.exit(1)
         
-        logger.info("NCSI Resolver service uninstalled successfully")
+        # Make sure registry and hosts file are restored (if system_config is available)
+        try:
+            from system_config import reset_configuration
+            if reset_configuration():
+                logger.info("System configuration reset to original settings")
+            else:
+                logger.warning("Could not fully reset system configuration")
+        except ImportError:
+            logger.warning("Could not reset system configuration (system_config module not available)")
+        
+        print("\nNCSI Resolver has been uninstalled successfully")
+        print("Windows NCSI settings have been restored to default values.")
     
     elif args.start:
         # Start the service
         if not start_service():
             logger.error("Failed to start service")
             sys.exit(1)
+            
+        print(f"\n{SERVICE_DISPLAY_NAME} started successfully")
     
     elif args.stop:
         # Stop the service
         if not stop_service():
             logger.error("Failed to stop service")
             sys.exit(1)
+            
+        print(f"\n{SERVICE_DISPLAY_NAME} stopped successfully")
     
     elif args.restart:
         # Restart the service
@@ -887,7 +971,7 @@ def main():
             logger.error("Failed to start service")
             sys.exit(1)
         
-        logger.info("NCSI Resolver service restarted successfully")
+        print(f"\n{SERVICE_DISPLAY_NAME} restarted successfully")
 
 if __name__ == "__main__":
     main()

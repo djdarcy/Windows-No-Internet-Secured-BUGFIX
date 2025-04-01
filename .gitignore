@@ -52,7 +52,7 @@ credentials.json
 *credentials*.json
 *token*.json
 *auth*.json
-config.json
+config-*.json
 *-config.json
 
 # Logs

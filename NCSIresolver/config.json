@@ -1,0 +1,50 @@
+{
+  "version": "0.6.0",
+  "description": "Windows Network Connectivity Status Indicator Resolver",
+  "installation": {
+    "default_dir": "C:\\Program Files\\NCSI Resolver",
+    "service_name": "NCSIResolver",
+    "service_display_name": "NCSI Resolver Service",
+    "service_description": "Resolves Windows Network Connectivity Status Indicator issues by serving local NCSI test endpoints."
+  },
+  "server": {
+    "default_port": 80,
+    "ncsi_text": "Microsoft Connect Test",
+    "hosts_file_path": "C:\\Windows\\System32\\drivers\\etc\\hosts",
+    "default_ncsi_host": "www.msftconnecttest.com",
+    "backup_dir": "%LOCALAPPDATA%\\NCSI_Resolver\\Backups"
+  },
+  "registry": {
+    "ncsi_key": "SYSTEM\\CurrentControlSet\\Services\\NlaSvc\\Parameters\\Internet",
+    "values": {
+      "ActiveWebProbeHost": {
+        "type": "REG_SZ",
+        "description": "Host for NCSI connectivity test"
+      },
+      "ActiveWebProbePath": {
+        "type": "REG_SZ",
+        "description": "Path for NCSI connectivity test",
+        "default": "/ncsi.txt"
+      }
+    }
+  },
+  "connectivity_checks": {
+    "ping_targets": ["8.8.8.8", "1.1.1.1", "4.2.2.1"],
+    "dns_targets": [
+      {"hostname": "www.google.com", "expected_ip": null},
+      {"hostname": "www.cloudflare.com", "expected_ip": null}
+    ],
+    "http_targets": [
+      "http://www.gstatic.com/generate_204",
+      "http://connectivitycheck.platform.hicloud.com/generate_204"
+    ],
+    "timeout": 2.0,
+    "check_interval": 15
+  },
+  "logging": {
+    "default_level": "INFO",
+    "log_file": "ncsi_resolver.log",
+    "max_size": 5242880,
+    "backup_count": 3
+  }
+}

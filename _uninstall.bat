@@ -1,9 +1,17 @@
 @echo off
+SETLOCAL
 REM uninstall.bat - Uninstaller for NCSI Resolver
 REM This batch file runs the uninstaller script with admin privileges
 
 echo NCSI Resolver Uninstaller
 echo =============================================
+
+REM Check if install directory was passed as parameter
+if "%~1"=="" (
+    set INSTALL_DIR=C:\NCSI_Resolver
+) else (
+    set INSTALL_DIR=%~1
+)
 
 REM Check for admin privileges
 NET SESSION >nul 2>&1
@@ -36,16 +44,20 @@ if /i "%CONFIRM%" neq "Y" (
 
 REM Run the uninstaller
 echo Uninstalling NCSI Resolver...
-python installer.py --uninstall --quick
+python installer.py --uninstall
 if %ERRORLEVEL% neq 0 (
     echo Uninstallation failed. See log for details.
     pause
     exit /b 1
 )
 
+REM Verify service is removed
 echo.
-echo NCSI Resolver has been successfully uninstalled.
+echo Verifying service removal...
+python installer.py --check --nobanner
 echo.
-echo Windows has been restored to default network detection behavior.
+echo Uninstallation process completed.
+echo The service has been removed and Windows has been restored to default network detection behavior.
 echo.
 pause
+ENDLOCAL

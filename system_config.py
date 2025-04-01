@@ -317,13 +317,14 @@ def update_hosts_file(hostname: str = DEFAULT_NCSI_HOST, ip: str = None) -> bool
         
         return False
 
-def update_ncsi_registry(probe_host: str = None, probe_path: str = "/ncsi.txt") -> bool:
+def update_ncsi_registry(probe_host: str = None, probe_path: str = "/ncsi.txt", port: int = 80) -> bool:
     """
     Update the Windows registry for NCSI settings.
     
     Args:
         probe_host: The hostname to use for NCSI probes (default: local IP)
         probe_path: The path to use for NCSI probes
+        port: The port to use for NCSI probes
         
     Returns:
         bool: True if successful, False otherwise
@@ -348,14 +349,20 @@ def update_ncsi_registry(probe_host: str = None, probe_path: str = "/ncsi.txt") 
             winreg.KEY_WRITE
         )
         
+        # Format the host with port if not using default HTTP port
+        if port != 80:
+            formatted_host = f"{probe_host}:{port}"
+        else:
+            formatted_host = probe_host
+            
         # Update registry values
-        winreg.SetValueEx(reg_key, "ActiveWebProbeHost", 0, winreg.REG_SZ, probe_host)
+        winreg.SetValueEx(reg_key, "ActiveWebProbeHost", 0, winreg.REG_SZ, formatted_host)
         winreg.SetValueEx(reg_key, "ActiveWebProbePath", 0, winreg.REG_SZ, probe_path)
         
         # Close the key
         winreg.CloseKey(reg_key)
         
-        logger.info(f"Updated NCSI registry settings to use {probe_host}{probe_path}")
+        logger.info(f"Updated NCSI registry settings to use {formatted_host}{probe_path}")
         return True
     
     except Exception as e:
@@ -869,6 +876,7 @@ def refresh_network() -> bool:
 
 def configure_system(probe_host: str = None, 
                      probe_path: str = "/ncsi.txt",
+                     port: int = 80,
                      restart_services: bool = True,
                      configure_wifi: bool = True) -> bool:
     """
@@ -877,6 +885,7 @@ def configure_system(probe_host: str = None,
     Args:
         probe_host: The hostname to use for NCSI probes (default: local IP)
         probe_path: The path to use for NCSI probes
+        port: The port to use for NCSI probes
         restart_services: Whether to restart network services
         configure_wifi: Whether to attempt Wi-Fi adapter configuration
         
@@ -898,7 +907,7 @@ def configure_system(probe_host: str = None,
         success = False
     
     # Update registry
-    if not update_ncsi_registry(probe_host, probe_path):
+    if not update_ncsi_registry(probe_host, probe_path, port):
         success = False
     
     # Configure Wi-Fi adapter only if requested
@@ -973,6 +982,52 @@ def reset_configuration() -> bool:
     # Restore registry settings
     if not restore_registry_from_backup():
         success = False
+    
+    # Write Windows default registry file
+    default_reg_path = os.path.join(BACKUP_DIR, "Windows-Defaults.reg")
+    
+    # Create Windows default registry file if it doesn't exist
+    if not os.path.exists(default_reg_path):
+        try:
+            with open(default_reg_path, 'w') as f:
+                f.write("""Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\NlaSvc\\Parameters\\Internet]
+"EnableActiveProbing"=dword:00000001
+"ActiveWebProbeHost"="www.msftconnecttest.com"
+"ActiveWebProbePath"="/connecttest.txt"
+"ActiveWebProbeContent"="Microsoft Connect Test"
+"EnableActiveHTTPS"=dword:00000001
+""")
+            logger.info(f"Created Windows default registry settings file at {default_reg_path}")
+        except Exception as e:
+            logger.error(f"Error creating Windows default registry file: {e}")
+    
+    # If registry values were removed, suggest restoring defaults
+    reg_key = winreg.OpenKey(
+        winreg.HKEY_LOCAL_MACHINE,
+        NCSI_REGISTRY_KEY,
+        0,
+        winreg.KEY_READ
+    )
+    
+    try:
+        winreg.QueryValueEx(reg_key, "ActiveWebProbeHost")
+        host_exists = True
+    except FileNotFoundError:
+        host_exists = False
+    
+    try:
+        winreg.QueryValueEx(reg_key, "ActiveWebProbePath")
+        path_exists = True
+    except FileNotFoundError:
+        path_exists = False
+    
+    winreg.CloseKey(reg_key)
+    
+    if not host_exists or not path_exists:
+        logger.warning("NCSI registry values were removed. Windows network connectivity detection may not work properly.")
+        logger.info(f"You can restore Windows default settings by double-clicking {default_reg_path}")
     
     # Restart network services
     if not restart_network_service():
