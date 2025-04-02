@@ -52,7 +52,7 @@ For those curious about the innerworkings of NCSI, the official documentation ca
 - ⚡ **Wi-Fi adapter optimization** for connection stability
 - 🔒 **Security monitoring** for tracking and detecting suspicious connection attempts
 - 🔬 **Advanced network diagnostics** with layered testing (ICMP, DNS, HTTP, HTTPS)
-- 🧪 **Comprehensive installation verification** to ensure proper setup
+- 🧪 **Installation validation** to ensure proper setup
 - 🖥️ **Interactive diagnostic page** when accessing the server directly
 
 ## Installation
@@ -122,7 +122,7 @@ To run advanced network diagnostics:
 python test_installation.py --verbose
 ```
 
-This comprehensive test will check:
+This validation test will check:
 - System configuration (registry, hosts file)
 - Service installation and status
 - Network connectivity at multiple layers
@@ -163,7 +163,7 @@ Security logs are stored in the `Logs` directory of your installation.
 To completely remove NCSI Resolver:
 
 1. Run `python installer.py --uninstall` or
-2. Run `uninstall.bat` as administrator
+2. Run `_uninstall.bat` as administrator
 
 ## How It Works
 
@@ -241,6 +241,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgements
 
 - Inspired by:
-  - My onerous Surface 7 refusing to sync with OneNote while using a virtual KVM, making it almost impossible to easily sync work in real-time between machines
+  - My onerous Surface 7 refusing to sync with OneNote while using a virtual KVM, making it nearly impossible to easily sync work in real-time between machines
   - And [**numerous**](https://answers.microsoft.com/en-us/windows/forum/windows_10-networking/windows-shows-no-internet-access-but-my-internet/2e9b593f-c31c-4448-b5d9-6e6b2bd8560c?page=2) [community](https://www.youtube.com/watch?v=v3CkXHgj6Ig&lc=UgwCfOeDQI7vPPsX0lN4AaABAg) [discussions](https://www.quora.com/Why-does-my-WiFi-keep-saying-no-internet-secured-even-no-matter-what-I-do-to-fix-it) about Windows NCSI issues
 - Uses [NSSM](https://nssm.cc/) for service management
