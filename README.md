@@ -11,7 +11,7 @@
 
 </div>
 
-A solution to fix the "No Internet, Secured" Windows connectivity detection issue when Windows incorrectly reports no internet connection despite having working connectivity.
+A one-click silent background solution to fix the "No Internet, Secured" Windows connectivity detection issue when Windows incorrectly reports no internet connection despite having working connectivity.
 
 [workflow-badge]: https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/actions/workflows/python.yml/badge.svg
 [workflow-url]: https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/actions
@@ -40,7 +40,7 @@ NCSI Resolver creates a lightweight HTTP server on your local machine to properl
 1. `/connecttest.txt` - Must return exactly "Microsoft Connect Test"
 2. `/redirect` - Used for captive portal detection
 
-For those curious about the innerworkings of NCSI, the official documentation can be found [here](https://learn.microsoft.com/en-us/windows-server/networking/ncsi/ncsi-overview). I wrote an article on Medium that gives a detailed explanation of how the bug was discovered and the initial steps taken to resolve it. You can read all about it here, "[When Windows Says 'No Internet' But You Know Better: A Technical Walkthrough](https://medium.com/technical-curious/when-windows-says-no-internet-but-you-know-better-a-technical-walkthrough-4710f541fc35)".
+For those curious about the innerworkings of NCSI, the official documentation can be found [here](https://learn.microsoft.com/en-us/windows-server/networking/ncsi/ncsi-overview). There is an article on Medium I wrote that gives the blow-by-blows of the bug, along with the initial steps taken to resolve it. You can read all about it here, "[When Windows Says 'No Internet' But You Know Better: A Technical Walkthrough](https://medium.com/technical-curious/when-windows-says-no-internet-but-you-know-better-a-technical-walkthrough-4710f541fc35)".
 
 ## Features
 
@@ -104,7 +104,7 @@ python installer.py --install --debug
 
 ## Usage
 
-Once installed, the NCSI Resolver runs automatically in the background. There's no user interface needed as it works silently to ensure Windows correctly detects internet connectivity.
+Once installed, the NCSI Resolver runs automatically in the background. There's no user interface needed (though there is a local [http://localhost/redirect](http://localhost/redirect) you can use to check interface statistics) as it works silently to ensure Windows correctly detects internet connectivity.
 
 ### Checking Status
 
@@ -169,7 +169,7 @@ To completely remove NCSI Resolver:
 
 NCSI Resolver functions by:
 
-1. Redirecting Windows NCSI test domains to your local machine via hosts file
+1. Redirecting Windows NCSI test domains to your local machine via the registry & hosts file
 2. Running a local HTTP server to respond to connectivity test requests
 3. Verifying actual internet connectivity using multiple methods (ICMP, DNS, HTTP)
 4. Updating the Windows registry to reference the local server
@@ -241,6 +241,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgements
 
 - Inspired by:
-  - My onerous Surface 7 refusing to sync with OneNote while using a virtual KVM, making it exceedingly difficult to sync work in real-time between machines
+  - My onerous Surface 7 refusing to sync with OneNote while using a virtual KVM, making it exceedingly difficult to sync work between machines
+  - Other folks who have attacked this problem in different ways including: [Dantmnf](https://github.com/dantmnf/NCSIOverride), [Jamesits](https://github.com/Jamesits/alwaysonline), along with a handful of other [NCSI trailblazers](https://github.com/topics/ncsi)
   - And [**numerous**](https://answers.microsoft.com/en-us/windows/forum/windows_10-networking/windows-shows-no-internet-access-but-my-internet/2e9b593f-c31c-4448-b5d9-6e6b2bd8560c?page=2) [community](https://www.youtube.com/watch?v=v3CkXHgj6Ig&lc=UgwCfOeDQI7vPPsX0lN4AaABAg) [discussions](https://www.quora.com/Why-does-my-WiFi-keep-saying-no-internet-secured-even-no-matter-what-I-do-to-fix-it) about Windows NCSI issues
 - Uses [NSSM](https://nssm.cc/) for service management
