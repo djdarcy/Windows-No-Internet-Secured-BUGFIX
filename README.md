@@ -188,10 +188,6 @@ Check logs at:
 - Security logs: `C:\Program Files\NCSI Resolver\Logs\security.log`
 - Detailed debug: `C:\Program Files\NCSI Resolver\Logs\ncsi_debug.log`
 
-## Contribution
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
 ### Development Setup
 
 1. Clone the repository
@@ -210,11 +206,25 @@ python -m pip install pyinstaller
 pyinstaller --onefile installer.py
 ```
 
+## Contributions
+
+Contributions are welcome! Issues, suggestions, and bug reports are all appreciated. Please open an [issue](https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/issues) if you find something that can be improved. Or feel free to submit a Pull Request: 
+
+1. Make a fork and clone the repository
+2. Setup a new branch and add your new feature (e.g., `feature/MORE_fixes`).
+3. Submit a pull request describing your changes.
+
+Like the project?
+
+[!["Buy Me A Coffee"](https://camo.githubusercontent.com/0b448aabee402aaf7b3b256ae471e7dc66bcf174fad7d6bb52b27138b2364e47/68747470733a2f2f7777772e6275796d6561636f666665652e636f6d2f6173736574732f696d672f637573746f6d5f696d616765732f6f72616e67655f696d672e706e67)](https://www.buymeacoffee.com/djdarcy)
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgements
 
-- Inspired by numerous community discussions about Windows NCSI issues
+- Inspired by:
+  - My onerous Surface 7 refusing to sync with OneNote while using my virtual KVM
+  - And [*numerous*](https://answers.microsoft.com/en-us/windows/forum/windows_10-networking/windows-shows-no-internet-access-but-my-internet/2e9b593f-c31c-4448-b5d9-6e6b2bd8560c?page=2) [community](https://www.youtube.com/watch?v=v3CkXHgj6Ig&lc=UgwCfOeDQI7vPPsX0lN4AaABAg) [discussions](https://www.quora.com/Why-does-my-WiFi-keep-saying-no-internet-secured-even-no-matter-what-I-do-to-fix-it) about Windows NCSI issues
 - Uses [NSSM](https://nssm.cc/) for service management
