@@ -40,7 +40,7 @@ NCSI Resolver creates a lightweight HTTP server on your local machine to properl
 1. `/connecttest.txt` - Must return exactly "Microsoft Connect Test"
 2. `/redirect` - Used for captive portal detection
 
-For those curious about the innerworkings of NCSI, the official documentation can be found [here](https://learn.microsoft.com/en-us/windows-server/networking/ncsi/ncsi-overview). There is an article on Medium I wrote that gives the blow-by-blows of the bug, along with the initial steps taken to resolve it. You can read all about it here, "[When Windows Says 'No Internet' But You Know Better: A Technical Walkthrough](https://medium.com/technical-curious/when-windows-says-no-internet-but-you-know-better-a-technical-walkthrough-4710f541fc35)".
+For those curious about the innerworkings of NCSI, the official documentation can be found [here](https://learn.microsoft.com/en-us/windows-server/networking/ncsi/ncsi-overview). There is an article on Medium I wrote that gives the blow-by-blows of the bug, along with the initial steps taken to resolve it. You can read all about it here, "[When Windows Says 'No Internet' But You Know Better: A Technical Walkthrough](https://medium.com/technical-curious/when-windows-says-no-internet-but-you-know-better-a-technical-walkthrough-ee6be0354224)".
 
 ## Features
 
