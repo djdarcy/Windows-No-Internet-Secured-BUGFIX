@@ -241,6 +241,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgements
 
 - Inspired by:
-  - My onerous Surface 7 refusing to sync with OneNote while using a virtual KVM, making it nearly impossible to easily sync work in real-time between machines
+  - My onerous Surface 7 refusing to sync with OneNote while using a virtual KVM, making it exceedingly difficult to sync work in real-time between machines
   - And [**numerous**](https://answers.microsoft.com/en-us/windows/forum/windows_10-networking/windows-shows-no-internet-access-but-my-internet/2e9b593f-c31c-4448-b5d9-6e6b2bd8560c?page=2) [community](https://www.youtube.com/watch?v=v3CkXHgj6Ig&lc=UgwCfOeDQI7vPPsX0lN4AaABAg) [discussions](https://www.quora.com/Why-does-my-WiFi-keep-saying-no-internet-secured-even-no-matter-what-I-do-to-fix-it) about Windows NCSI issues
 - Uses [NSSM](https://nssm.cc/) for service management
