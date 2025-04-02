@@ -41,7 +41,7 @@ DEFAULT_CONFIG_PATHS = [
 
 # Default configuration values if no config file is found
 DEFAULT_CONFIG = {
-    "version": "0.7.1",
+    "version": "0.7.2",
     "description": "Windows Network Connectivity Status Indicator Resolver",
     "installation": {
         "default_dir": "C:\\Program Files\\NCSI Resolver",

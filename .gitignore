@@ -47,6 +47,8 @@ nosetests.xml
 # Secrets
 private/
 *-private.*
+convos/
+convo/
 .env
 credentials.json
 *credentials*.json

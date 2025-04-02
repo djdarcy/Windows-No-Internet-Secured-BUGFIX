@@ -32,6 +32,9 @@ if %ERRORLEVEL% neq 0 (
     exit /b 1
 )
 
+REM  Change to the directory where this script is located
+cd /d "%~dp0"
+
 REM Prepare the command line
 SET CMD=python installer.py --uninstall --verbose
 
