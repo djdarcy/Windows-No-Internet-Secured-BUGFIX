@@ -196,22 +196,25 @@ python test_installation.py --verbose
 
 This will check all aspects of the installation and provide specific recommendations for fixing issues.
 
-### Logs
+### Logs & Backups
 
 Check logs at:
-- Service logs: `C:\Program Files\NCSI Resolver\Logs\ncsi_resolver.log`
-- Service output: `C:\Program Files\NCSI Resolver\Logs\service_output.log`
-- Security logs: `C:\Program Files\NCSI Resolver\Logs\security.log`
-- Detailed debug: `C:\Program Files\NCSI Resolver\Logs\ncsi_debug.log`
+- Service logs: `%LOCALAPPDATA%\NCSI_Resolver\Logs\ncsi_resolver.log`
+- Service output: `%LOCALAPPDATA%\NCSI_Resolver\Logs\service_output.log`
+- Security logs: `%LOCALAPPDATA%\NCSI_Resolver\Logs\security.log`
+- Detailed debug: `%LOCALAPPDATA%\NCSI_Resolver\Logs\ncsi_debug.log`
+
+Backups are at:
+- Original registry and HOSTS file: `%LOCALAPPDATA%\NCSI_Resolver\Backups\`
 
 ### Development Setup
 
 1. Clone the repository
 2. Create a virtual environment: `python -m venv venv`
 3. Activate it: `venv\Scripts\activate`
-4. Install dependencies: `pip install -r requirements.txt`
+4. Install dependencies: `pip install -r dev-requirements.txt`
 5. Make your changes
-6. Test thoroughly on different Windows versions and network configurations
+6. Test thoroughly preferably on different Windows versions and network configurations
 
 ### Building
 
@@ -227,7 +230,7 @@ pyinstaller --onefile installer.py
 Contributions are welcome! Issues, suggestions, and bug reports are all appreciated. Please open an [issue](https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/issues) if you find something that can be improved. Or feel free to submit a Pull Request: 
 
 1. Make a fork and clone the repository
-2. Setup a new branch and add your new feature (e.g., `feature/cool_fix`).
+2. Setup a new branch and add your new feature (e.g., `feature/happy_little_fix`).
 3. Submit a pull request describing your changes.
 
 Like the project?
