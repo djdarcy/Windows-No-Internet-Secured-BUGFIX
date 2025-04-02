@@ -15,9 +15,9 @@ A solution to fix the "No Internet, Secured" Windows connectivity detection issu
 
 [workflow-badge]: https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/actions/workflows/python.yml/badge.svg
 [workflow-url]: https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/actions
-[version-badge]: https://img.shields.io/github/v/release/djdarcy/Windows-No-Internet-Secured-BUGFIX?sort=semver&color=brightgreen
+[version-badge]: https://img.shields.io/github/v/release/djdarcy/Windows-No-Internet-Secured-BUGFIX?sort=semver&color=darkgreen
 [version-url]: https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/releases
-[python-badge]: https://img.shields.io/badge/python-3.8%2B-brightgreen
+[python-badge]: https://img.shields.io/badge/python-3.8%2B-darkgreen
 [python-url]: https://www.python.org/downloads/
 [license-badge]: https://img.shields.io/badge/license-MIT-blue
 [license-url]: https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/blob/main/LICENSE
@@ -40,7 +40,7 @@ NCSI Resolver creates a lightweight HTTP server on your local machine to properl
 1. `/connecttest.txt` - Must return exactly "Microsoft Connect Test"
 2. `/redirect` - Used for captive portal detection
 
-For those curious about the innerworkings of NCSI, the official documentation can be found [here](https://learn.microsoft.com/en-us/windows-server/networking/ncsi/ncsi-overview). There is an article on Medium that gives a detailed explanation of how this bug was discovered and the steps taken to resolve it. You can read all about it here, "[When Windows Says 'No Internet' But You Know Better: A Technical Walkthrough](https://medium.com/technical-curious/when-windows-says-no-internet-but-you-know-better-a-technical-walkthrough-4710f541fc35)".
+For those curious about the innerworkings of NCSI, the official documentation can be found [here](https://learn.microsoft.com/en-us/windows-server/networking/ncsi/ncsi-overview). I wrote an article on Medium that gives a detailed explanation of how the bug was discovered and the initial steps taken to resolve it. You can read all about it here, "[When Windows Says 'No Internet' But You Know Better: A Technical Walkthrough](https://medium.com/technical-curious/when-windows-says-no-internet-but-you-know-better-a-technical-walkthrough-4710f541fc35)".
 
 ## Features
 
@@ -227,7 +227,7 @@ pyinstaller --onefile installer.py
 Contributions are welcome! Issues, suggestions, and bug reports are all appreciated. Please open an [issue](https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/issues) if you find something that can be improved. Or feel free to submit a Pull Request: 
 
 1. Make a fork and clone the repository
-2. Setup a new branch and add your new feature (e.g., `feature/MORE_fixes`).
+2. Setup a new branch and add your new feature (e.g., `feature/cool_fix`).
 3. Submit a pull request describing your changes.
 
 Like the project?
@@ -241,6 +241,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgements
 
 - Inspired by:
-  - My onerous Surface 7 refusing to sync with OneNote while using my virtual KVM
-  - And [*numerous*](https://answers.microsoft.com/en-us/windows/forum/windows_10-networking/windows-shows-no-internet-access-but-my-internet/2e9b593f-c31c-4448-b5d9-6e6b2bd8560c?page=2) [community](https://www.youtube.com/watch?v=v3CkXHgj6Ig&lc=UgwCfOeDQI7vPPsX0lN4AaABAg) [discussions](https://www.quora.com/Why-does-my-WiFi-keep-saying-no-internet-secured-even-no-matter-what-I-do-to-fix-it) about Windows NCSI issues
+  - My onerous Surface 7 refusing to sync with OneNote while using a virtual KVM, making it almost impossible to easily sync work in real-time between machines
+  - And [**numerous**](https://answers.microsoft.com/en-us/windows/forum/windows_10-networking/windows-shows-no-internet-access-but-my-internet/2e9b593f-c31c-4448-b5d9-6e6b2bd8560c?page=2) [community](https://www.youtube.com/watch?v=v3CkXHgj6Ig&lc=UgwCfOeDQI7vPPsX0lN4AaABAg) [discussions](https://www.quora.com/Why-does-my-WiFi-keep-saying-no-internet-secured-even-no-matter-what-I-do-to-fix-it) about Windows NCSI issues
 - Uses [NSSM](https://nssm.cc/) for service management
