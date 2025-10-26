@@ -37,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved error messages with specific troubleshooting guidance
 - Diagnostic mode uses ASCII-safe output for Windows compatibility
 
-## [0.7.2-alpha] - 2025-10-25
+## [0.7.2-alpha] - 2025-06-21
 
 ### Added
 - Initial NSIS (Nullsoft Scriptable Install System) installer implementation
