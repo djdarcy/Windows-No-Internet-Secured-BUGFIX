@@ -5,6 +5,34 @@ All notable changes to the "Windows (No Internet, Secured) BUGFIX" NCSI Resolver
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.3-alpha] - 2025-10-26
+
+### Added
+- Future-proof Python detection in NSIS installer (supports Python 3.8-3.13+)
+- Python validation step to ensure executable actually works (not just exists)
+- New `--diagnose` mode with 9 pre-installation checks
+- Start Menu shortcut for "Run Diagnostics"
+- Dynamic version detection loop for future Python releases
+
+### Fixed
+- NSIS installer now detects Python versions 3.11, 3.12, 3.13 and beyond
+- Unicode encoding issues in diagnostic output on Windows console
+- Python detection no longer requires hardcoded version updates
+
+### Changed
+- Enhanced FindPython function with multiple detection strategies
+- Improved error messages with specific troubleshooting guidance
+- Diagnostic mode uses ASCII-safe output for Windows compatibility
+
+## [0.7.2-alpha] - 2025-10-25
+
+### Added
+- Initial NSIS (Nullsoft Scriptable Install System) installer implementation
+- One-click installation with `NCSI_Resolver_v0.7.2_setup.exe`
+- Automated Python detection for versions 3.8-3.10
+- Automatic service installation and startup via NSIS installer
+- Minimal installer build script (`build_installer.py`)
+
 ## [0.7.1-alpha] - 2025-04-01
 - First major release
 - Minor bug fixes (CI/CD, flake8, and other CI/CD related issues)

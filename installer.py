@@ -49,7 +49,7 @@ try:
     __description__ = __version_info__["description"]
 except ImportError:
     # Fallback version info if version.py is missing
-    __version__ = "0.7.2"
+    __version__ = "0.7.3"
     __description__ = "Windows Network Connectivity Status Indicator Resolver Installer"
 
 # Add parent directory to path for imports
@@ -450,6 +450,201 @@ def perform_uninstallation(quick_mode: bool = False) -> bool:
 # Create a global flag to track if banner has been displayed
 _banner_displayed = False
 
+def run_diagnostics(install_dir: str, port: int) -> Dict[str, any]:
+    """
+    Run diagnostic checks for NCSI Resolver installation.
+
+    Args:
+        install_dir: Target installation directory
+        port: Port to be used for NCSI server
+
+    Returns:
+        Dict containing diagnostic results and recommendations
+    """
+    print("\n" + "=" * 60)
+    print("NCSI Resolver - Installation Diagnostics")
+    print("=" * 60 + "\n")
+
+    results = {
+        'passed': [],
+        'failed': [],
+        'warnings': [],
+        'info': []
+    }
+
+    # Check 1: Python version
+    print("[1/9] Checking Python version...")
+    python_version = sys.version_info
+    if python_version >= (3, 8):
+        results['passed'].append(f"[OK] Python {python_version.major}.{python_version.minor}.{python_version.micro} (meets requirement >= 3.8)")
+        print(f"  [OK] Python {python_version.major}.{python_version.minor}.{python_version.micro}")
+    else:
+        results['failed'].append(f"[FAIL] Python {python_version.major}.{python_version.minor} is too old (need 3.8+)")
+        print(f"  [FAIL] Python version too old: {python_version.major}.{python_version.minor}")
+        print(f"         Install Python 3.8+ from https://www.python.org/downloads/")
+
+    # Check 2: Python executable location
+    print(f"\n[2/9] Checking Python executable...")
+    python_exe = sys.executable
+    results['info'].append(f"Python executable: {python_exe}")
+    print(f"  [INFO] Location: {python_exe}")
+
+    # Check 3: Required Python modules
+    print(f"\n[3/9] Checking required Python modules...")
+    required_modules = ['http.server', 'socket', 'subprocess', 'ctypes', 'winreg']
+    missing_modules = []
+    for module in required_modules:
+        try:
+            __import__(module)
+            results['passed'].append(f"[OK] Module '{module}' available")
+        except ImportError:
+            missing_modules.append(module)
+            results['failed'].append(f"[FAIL] Module '{module}' missing")
+
+    if missing_modules:
+        print(f"  [FAIL] Missing modules: {', '.join(missing_modules)}")
+    else:
+        print(f"  [OK] All required modules available")
+
+    # Check 4: Admin privileges
+    print(f"\n[4/9] Checking administrator privileges...")
+    if is_admin():
+        results['passed'].append("[OK] Running with administrator privileges")
+        print(f"  [OK] Administrator privileges: Yes")
+    else:
+        results['failed'].append("[FAIL] Not running as administrator")
+        print(f"  [FAIL] Administrator privileges: No")
+        print(f"         Right-click and select 'Run as administrator'")
+
+    # Check 5: Port availability
+    print(f"\n[5/9] Checking port {port} availability...")
+    import socket
+    try:
+        test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        test_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        test_socket.bind(('0.0.0.0', port))
+        test_socket.close()
+        results['passed'].append(f"[OK] Port {port} is available")
+        print(f"  [OK] Port {port} is available")
+    except OSError as e:
+        results['failed'].append(f"[FAIL] Port {port} is in use or blocked")
+        print(f"  [FAIL] Port {port} is not available")
+        print(f"     Try using a different port with --port=8080")
+        if port == 80:
+            print(f"     Port 80 may be used by IIS, Apache, or other web servers")
+
+    # Check 6: Installation directory
+    print(f"\n[6/9] Checking installation directory...")
+    try:
+        install_path = Path(install_dir)
+        if install_path.exists():
+            results['warnings'].append(f"[WARN] Installation directory already exists: {install_dir}")
+            print(f"  [WARN] Directory exists: {install_dir}")
+            print(f"     Existing installation will be updated")
+        else:
+            # Try to create parent directory to test permissions
+            parent = install_path.parent
+            if parent.exists():
+                results['passed'].append(f"[OK] Can access parent directory: {parent}")
+                print(f"  [OK] Parent directory accessible: {parent}")
+            else:
+                results['warnings'].append(f"[WARN] Parent directory does not exist: {parent}")
+                print(f"  [WARN] Parent directory does not exist: {parent}")
+    except Exception as e:
+        results['failed'].append(f"[FAIL] Cannot access installation directory: {e}")
+        print(f"  [FAIL] Error: {e}")
+
+    # Check 7: NSSM availability
+    print(f"\n[7/9] Checking for NSSM (service manager)...")
+    try:
+        if 'get_nssm_path' in globals():
+            nssm_path = get_nssm_path()
+            if nssm_path and Path(nssm_path).exists():
+                results['passed'].append(f"[OK] NSSM found: {nssm_path}")
+                print(f"  [OK] NSSM available: {nssm_path}")
+            else:
+                results['warnings'].append("[WARN] NSSM not found (will be downloaded)")
+                print(f"  [INFO] NSSM will be downloaded during installation")
+        else:
+            results['info'].append("Cannot check NSSM (function not available)")
+            print(f"  [INFO] NSSM check skipped")
+    except Exception as e:
+        results['warnings'].append(f"[WARN] NSSM check failed: {e}")
+        print(f"  [WARN] Could not check NSSM: {e}")
+
+    # Check 8: Firewall (informational)
+    print(f"\n[8/9] Checking Windows Firewall...")
+    try:
+        fw_result = subprocess.run(
+            ['netsh', 'advfirewall', 'show', 'currentprofile'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if fw_result.returncode == 0 and 'State' in fw_result.stdout:
+            if 'ON' in fw_result.stdout:
+                results['info'].append("Windows Firewall is active")
+                print(f"  [INFO] Windows Firewall is ON (installer will create rule)")
+            else:
+                results['info'].append("Windows Firewall is disabled")
+                print(f"  [INFO] Windows Firewall is OFF")
+        else:
+            results['info'].append("Could not determine firewall status")
+            print(f"  [INFO] Firewall status: Unknown")
+    except Exception:
+        results['info'].append("Firewall check skipped")
+        print(f"  [INFO] Firewall check skipped")
+
+    # Check 9: Existing installation
+    print(f"\n[9/9] Checking for existing installation...")
+    try:
+        if 'check_service_status' in globals():
+            service_status = check_service_status()
+            if service_status.get('installed'):
+                results['warnings'].append("[WARN] NCSI Resolver service is already installed")
+                print(f"  [WARN] Service already installed")
+                if service_status.get('running'):
+                    print(f"     Service is currently running")
+                else:
+                    print(f"     Service is installed but not running")
+                print(f"     Installation will update the existing service")
+            else:
+                results['passed'].append("[OK] No existing service installation found")
+                print(f"  [OK] No existing installation")
+        else:
+            results['info'].append("Cannot check existing service")
+            print(f"  [INFO] Service check skipped")
+    except Exception as e:
+        results['info'].append(f"Service check failed: {e}")
+        print(f"  [INFO] Could not check for existing service")
+
+    # Summary
+    print("\n" + "=" * 60)
+    print("Diagnostic Summary")
+    print("=" * 60)
+
+    passed_count = len(results['passed'])
+    failed_count = len(results['failed'])
+    warning_count = len(results['warnings'])
+
+    print(f"\n[OK]   Passed:   {passed_count}")
+    print(f"[FAIL] Failed:   {failed_count}")
+    print(f"[WARN] Warnings: {warning_count}")
+
+    if failed_count == 0:
+        print("\n[SUCCESS] All checks passed! Ready to install.")
+        print("          Run: python installer.py --install")
+    elif failed_count <= 2:
+        print("\n[WARN] Some issues detected but may still work.")
+        print("       Review failed checks above and try installation.")
+    else:
+        print("\n[ERROR] Multiple issues detected. Please resolve them first.")
+        print("        Review failed checks above before installing.")
+
+    print("\n" + "=" * 60 + "\n")
+
+    return results
+
 def display_banner(show_banner: bool = True):
     """
     Display the NCSI Resolver ASCII banner.
@@ -497,6 +692,7 @@ def main():
     action_group.add_argument("--uninstall", action="store_true", help="Uninstall NCSI Resolver")
     action_group.add_argument("--check", action="store_true", help="Check installation status")
     action_group.add_argument("--status", action="store_true", help="Alias for --check")
+    action_group.add_argument("--diagnose", action="store_true", help="Run diagnostic checks without installing")
     
     # Additional options
     parser.add_argument("--install-dir", default=DEFAULT_INSTALL_DIR, help=f"Installation directory (default: {DEFAULT_INSTALL_DIR})")
@@ -637,6 +833,14 @@ def main():
                 print(f"Service Running: {'Yes' if service_status.get('running') else 'No'}")
             else:
                 print("\nCannot check service status. Module not available.")
+
+    elif args.diagnose:
+        # Run diagnostic checks
+        results = run_diagnostics(args.install_dir, args.port)
+
+        # Exit with appropriate code based on results
+        if len(results['failed']) > 0:
+            sys.exit(1)
 
 if __name__ == "__main__":
     main()

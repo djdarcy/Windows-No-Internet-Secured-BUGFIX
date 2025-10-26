@@ -24,6 +24,8 @@ def create_minimal_nsis_script():
     version = get_version()
     
     script_content = f'''!include "MUI2.nsh"
+!include "StrFunc.nsh"
+${{StrLoc}}
 
 ; Product info
 !define PRODUCT_NAME "NCSI Resolver"
@@ -99,57 +101,151 @@ success:
 done:
 SectionEnd
 
-; Find Python function
+; Find Python function - Future-proof dynamic detection
 Function FindPython
-    ; Try registry entries first (most reliable)
-    ReadRegStr $PYTHON_EXE HKLM "SOFTWARE\\Python\\PythonCore\\3.10\\InstallPath" "ExecutablePath"
-    IfFileExists "$PYTHON_EXE" found
-    
-    ReadRegStr $PYTHON_EXE HKLM "SOFTWARE\\Python\\PythonCore\\3.9\\InstallPath" "ExecutablePath"
-    IfFileExists "$PYTHON_EXE" found
-    
-    ReadRegStr $PYTHON_EXE HKLM "SOFTWARE\\Python\\PythonCore\\3.8\\InstallPath" "ExecutablePath"
-    IfFileExists "$PYTHON_EXE" found
-    
-    ; Try standard installation locations
-    StrCpy $PYTHON_EXE "$PROGRAMFILES\\Python310\\python.exe"
-    IfFileExists "$PYTHON_EXE" found
-    
-    StrCpy $PYTHON_EXE "$PROGRAMFILES\\Python39\\python.exe"
-    IfFileExists "$PYTHON_EXE" found
-    
-    StrCpy $PYTHON_EXE "$PROGRAMFILES\\Python38\\python.exe"
-    IfFileExists "$PYTHON_EXE" found
-    
-    ; Try user installation paths
-    StrCpy $PYTHON_EXE "$PROFILE\\AppData\\Local\\Programs\\Python\\Python310\\python.exe"
-    IfFileExists "$PYTHON_EXE" found
-    
-    StrCpy $PYTHON_EXE "$PROFILE\\AppData\\Local\\Programs\\Python\\Python39\\python.exe"
-    IfFileExists "$PYTHON_EXE" found
-    
-    ; Try py launcher (Windows Python Launcher)
+    Push $0
+    Push $1
+    Push $2
+
+    DetailPrint "Searching for Python installation..."
+
+    ; Strategy 1: Try py launcher first (most reliable for getting latest Python)
     StrCpy $PYTHON_EXE "$WINDIR\\py.exe"
-    IfFileExists "$PYTHON_EXE" found
-    
-    ; Try system PATH
-    StrCpy $PYTHON_EXE "python.exe"
-    Goto found
-    
-found:
+    IfFileExists "$PYTHON_EXE" test_python
+
+    ; Strategy 2: Try python.exe in system PATH
+    DetailPrint "Checking system PATH for python.exe..."
+    nsExec::ExecToStack 'where python.exe'
+    Pop $0 ; exit code
+    Pop $1 ; output
+    IntCmp $0 0 0 try_registry try_registry
+    ; Extract first line from where output (in case multiple pythons)
+    StrCpy $2 $1 1024 ; Get first 1024 chars
+    ; Find first newline and extract path before it
+    ${{StrLoc}} $0 $2 "$\\r$\\n" ">"
+    IntCmp $0 0 path_found path_found
+    StrCpy $PYTHON_EXE $2 $0 ; Extract substring up to newline
+    Goto test_python
+
+path_found:
+    StrCpy $PYTHON_EXE $2
+    Goto test_python
+
+try_registry:
+    ; Strategy 3: Enumerate registry for any Python 3.x version (future-proof)
+    DetailPrint "Searching Windows registry for Python installations..."
+
+    ; Try Python 3.13 through 3.8 in descending order (prefer newer)
+    StrCpy $0 313
+registry_loop:
+    IntCmp $0 37 registry_done ; Stop at 3.7 (we need 3.8+)
+
+    ; Convert version number to registry format (e.g., 313 -> "3.13")
+    IntOp $1 $0 / 10
+    IntOp $2 $0 % 10
+    StrCpy $1 "$1.$2"
+
+    DetailPrint "Checking registry for Python $1..."
+
+    ; Try HKLM first (system-wide install)
+    ReadRegStr $PYTHON_EXE HKLM "SOFTWARE\\Python\\PythonCore\\$1\\InstallPath" "ExecutablePath"
+    IfFileExists "$PYTHON_EXE" test_python
+
+    ; Try HKCU (user install)
+    ReadRegStr $PYTHON_EXE HKCU "SOFTWARE\\Python\\PythonCore\\$1\\InstallPath" "ExecutablePath"
+    IfFileExists "$PYTHON_EXE" test_python
+
+    ; Decrement and try next version
+    IntOp $0 $0 - 1
+    Goto registry_loop
+
+registry_done:
+    ; Strategy 4: Try common installation directories (newest first)
+    DetailPrint "Checking standard installation locations..."
+
+    ; System-wide installations (Program Files)
+    StrCpy $0 313
+dir_loop:
+    IntCmp $0 37 user_dir_check
+
+    IntOp $1 $0 / 10
+    IntOp $2 $0 % 10
+    StrCpy $1 "Python$1$2"
+
+    StrCpy $PYTHON_EXE "$PROGRAMFILES\\$1\\python.exe"
+    IfFileExists "$PYTHON_EXE" test_python
+
+    StrCpy $PYTHON_EXE "$PROGRAMFILES32\\$1\\python.exe"
+    IfFileExists "$PYTHON_EXE" test_python
+
+    IntOp $0 $0 - 1
+    Goto dir_loop
+
+user_dir_check:
+    ; User-specific installations
+    StrCpy $0 313
+user_loop:
+    IntCmp $0 37 python_not_found
+
+    IntOp $1 $0 / 10
+    IntOp $2 $0 % 10
+    StrCpy $1 "Python$1$2"
+
+    StrCpy $PYTHON_EXE "$PROFILE\\AppData\\Local\\Programs\\Python\\$1\\python.exe"
+    IfFileExists "$PYTHON_EXE" test_python
+
+    ; Microsoft Store Python location
+    StrCpy $PYTHON_EXE "$LOCALAPPDATA\\Microsoft\\WindowsApps\\python.exe"
+    IfFileExists "$PYTHON_EXE" test_python
+
+    IntOp $0 $0 - 1
+    Goto user_loop
+
+test_python:
+    DetailPrint "Found potential Python at: $PYTHON_EXE"
+    DetailPrint "Validating Python installation..."
+
+    ; Test if Python actually works and is version 3.8+
+    nsExec::ExecToStack '"$PYTHON_EXE" -c "import sys; exit(0 if sys.version_info >= (3, 8) else 1)"'
+    Pop $0 ; exit code
+    Pop $1 ; output (unused)
+
+    IntCmp $0 0 python_valid
+    DetailPrint "Python validation failed (exit code $0), continuing search..."
+    Goto try_registry
+
+python_valid:
+    ; Get and display Python version
+    nsExec::ExecToStack '"$PYTHON_EXE" --version'
+    Pop $0
+    Pop $1
+    DetailPrint "Python validation successful: $1"
     DetailPrint "Using Python: $PYTHON_EXE"
+    Goto found
+
+python_not_found:
+    MessageBox MB_ICONSTOP "Python 3.8 or higher not found!$\\r$\\n$\\r$\\nPlease install Python from:$\\r$\\nhttps://www.python.org/downloads/$\\r$\\n$\\r$\\nMake sure to check 'Add Python to PATH' during installation.$\\r$\\n$\\r$\\nAfter installing Python, run this installer again."
+    Abort "Python not found"
+
+found:
+    Pop $2
+    Pop $1
+    Pop $0
 FunctionEnd
 
 ; Create shortcuts
 Function CreateShortcuts
     CreateDirectory "$SMPROGRAMS\\NCSI Resolver"
-    
+
+    ; Diagnostics shortcut - run pre-installation checks
+    CreateShortCut "$SMPROGRAMS\\NCSI Resolver\\Run Diagnostics.lnk" "$PYTHON_EXE" '"$INSTDIR\\installer.py" --diagnose --nobanner'
+
+    ; Status shortcut - check installation status
+    CreateShortCut "$SMPROGRAMS\\NCSI Resolver\\Check Status.lnk" "$PYTHON_EXE" '"$INSTDIR\\installer.py" --check --nobanner'
+
     ; Uninstaller shortcut - runs the actual installer.py with --uninstall
     CreateShortCut "$SMPROGRAMS\\NCSI Resolver\\Uninstall NCSI Resolver.lnk" "$PYTHON_EXE" '"$INSTDIR\\installer.py" --uninstall --quick --nobanner'
-    
-    ; Diagnostics shortcut - check status
-    CreateShortCut "$SMPROGRAMS\\NCSI Resolver\\Check Status.lnk" "$PYTHON_EXE" '"$INSTDIR\\installer.py" --check --nobanner'
-    
+
     ; Help shortcut
     FileOpen $0 "$SMPROGRAMS\\NCSI Resolver\\Get Help (GitHub).url" w
     FileWrite $0 "[InternetShortcut]$\\r$\\n"

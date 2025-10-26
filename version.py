@@ -6,7 +6,7 @@ This module provides version information for all NCSI Resolver components.
 """
 
 # Version information
-__version__ = "0.7.2"
+__version__ = "0.7.3"
 __author__ = "Dustin Darcy"
 __copyright__ = "Copyright 2025"
 

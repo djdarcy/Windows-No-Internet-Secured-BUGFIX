@@ -13,7 +13,7 @@
 
 A one-click silent background solution to fix the "No Internet, Secured" Windows connectivity detection issue when Windows incorrectly reports no internet connection despite having working connectivity. 
 
-Quick download links: [`NCSI_Resolver_v0.7.2_setup.exe`](https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/releases/download/v0.7.2-alpha/NCSI_Resolver_v0.7.2_setup.exe) or [source zip](https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/archive/refs/tags/v0.7.2-alpha.zip) 
+Quick download links: [`NCSI_Resolver_v0.7.3_setup.exe`](https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/releases/download/v0.7.3-alpha/NCSI_Resolver_v0.7.3_setup.exe) or [source zip](https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/archive/refs/tags/v0.7.3-alpha.zip) 
 
 
 [workflow-badge]: https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/actions/workflows/python.yml/badge.svg
@@ -68,7 +68,7 @@ For those curious about the innerworkings of NCSI, the official documentation ca
 
 ### Quick Install
 
-1. Download the latest release from the [Releases page](https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/releases) or the installer [NCSI_Resolver_v0.7.2_setup.exe](https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/releases/download/v0.7.2-alpha/NCSI_Resolver_v0.7.2_setup.exe) 
+1. Download the latest release from the [Releases page](https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/releases) or the installer [NCSI_Resolver_v0.7.3_setup.exe](https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/releases/download/v0.7.3-alpha/NCSI_Resolver_v0.7.3_setup.exe) 
 
 2. Extract the ZIP file to a temporary location
 3. Right-click on `_install.bat` and select "Run as administrator"
