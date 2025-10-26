@@ -55,7 +55,7 @@ try:
     __description__ = __version_info__["description"]
 except ImportError:
     # Fallback version info if version.py is missing
-    __version__ = "0.7.3"
+    __version__ = "0.7.4"
     __description__ = "NCSI Resolver Service Installer"
 
 # Import system configuration module
@@ -390,7 +390,7 @@ def install_service(install_dir: str, nssm_path: str) -> bool:
     """
     try:
         # Path to wrapper script
-        wrapper_path = os.path.join(install_dir, "service_wrapper.py")
+        wrapper_path = os.path.join(install_dir, "NCSIresolver", "service_wrapper.py")
         if not os.path.exists(wrapper_path):
             logger.error(f"Service wrapper script not found at {wrapper_path}")
             return False

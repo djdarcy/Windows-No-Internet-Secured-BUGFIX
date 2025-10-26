@@ -49,7 +49,7 @@ try:
     __description__ = __version_info__["description"]
 except ImportError:
     # Fallback version info if version.py is missing
-    __version__ = "0.7.3"
+    __version__ = "0.7.4"
     __description__ = "Windows Network Connectivity Status Indicator Resolver Installer"
 
 # Add parent directory to path for imports
@@ -224,19 +224,22 @@ def perform_full_installation(install_dir: str, port: int, quick_mode: bool = Fa
     
     # Check administrative privileges
     if not is_admin():
-        logger.warning("Administrative privileges are required for installation.")
-        if not quick_mode:
+        if quick_mode:
+            # In quick mode, assume caller has already handled admin elevation (e.g., NSIS installer)
+            # Continue anyway but log a warning
+            logger.warning("Running without administrative privileges in quick mode - some features may fail")
+        else:
+            logger.warning("Administrative privileges are required for installation.")
             input("Press Enter to continue and request admin privileges...")
-        
-        # Re-run with admin privileges
-        run_as_admin(
-            sys.argv[0],
-            f"--install-dir={install_dir}",
-            f"--port={port}",
-            "--quick" if quick_mode else "",
-            "--nobanner"  # Add nobanner flag when elevating
-        )
-        return True
+
+            # Re-run with admin privileges
+            run_as_admin(
+                sys.argv[0],
+                f"--install-dir={install_dir}",
+                f"--port={port}",
+                "--nobanner"  # Add nobanner flag when elevating
+            )
+            return True
     
     # Test port availability before proceeding with installation
     logger.info(f"Testing port {port} availability...")
@@ -299,11 +302,15 @@ def perform_full_installation(install_dir: str, port: int, quick_mode: bool = Fa
     else:
         logger.warning("Firewall helper module not available. Firewall will not be configured.")
     
-    # Create service files
-    logger.info(f"Creating service files in {install_dir}...")
-    if not create_service_files(install_dir, port):
-        logger.error("Failed to create service files.")
-        return False
+    # Create service files (skip if running from NSIS installer and files already exist)
+    ncsi_server_path = os.path.join(install_dir, "NCSIresolver", "ncsi_server.py")
+    if quick_mode and os.path.exists(ncsi_server_path):
+        logger.info(f"Service files already present in {install_dir}, skipping file creation")
+    else:
+        logger.info(f"Creating service files in {install_dir}...")
+        if not create_service_files(install_dir, port):
+            logger.error("Failed to create service files.")
+            return False
     
     # Install and start the service
     logger.info("Installing and starting NCSI Resolver service...")

@@ -68,7 +68,8 @@ Section "Install"
     File "version.py"
     File "nssm.exe"
     
-    ; Copy essential NCSI service files directly to root (no subdirectory)
+    ; Create NCSIresolver subdirectory and copy files there
+    SetOutPath "$INSTDIR\\NCSIresolver"
     File "NCSIresolver\\ncsi_server.py"
     File "NCSIresolver\\service_wrapper.py"
     File "NCSIresolver\\config.json"
@@ -76,21 +77,22 @@ Section "Install"
     File "NCSIresolver\\logger.py"
     File "NCSIresolver\\directory_manager.py"
     File "NCSIresolver\\redirect.html"
+
+    ; Return to root directory
+    SetOutPath "$INSTDIR"
     
     ; Find Python
     Call FindPython
     
-    ; Run installer using the actual installer.py
+    ; Run installer using the actual installer.py and save output to log
     DetailPrint "Running NCSI Resolver installer..."
-    nsExec::ExecToLog '"$PYTHON_EXE" "$INSTDIR\\installer.py" --install --quick --nobanner'
+    SetOutPath "$TEMP"
+    nsExec::ExecToLog 'cmd /c ""$PYTHON_EXE" "$INSTDIR\\installer.py" --install --quick --nobanner > "$TEMP\\ncsi_install.log" 2>&1"'
     Pop $0
-    
-    ; Also create a separate log file for manual inspection
-    ExecWait '"$PYTHON_EXE" "$INSTDIR\\installer.py" --install --quick --nobanner > "$INSTDIR\\install_log.txt" 2>&1' $1
-    
+
     ; Check result
     IntCmp $0 0 success
-    MessageBox MB_OK "Installation failed with exit code $0.$\\r$\\nCheck install_log.txt in $INSTDIR for details.$\\r$\\n$\\r$\\nCommon issues:$\\r$\\n- Port 80 may be in use (try --port=8080)$\\r$\\n- Windows Firewall blocking connection$\\r$\\n- Antivirus interference"
+    MessageBox MB_OK "Installation failed with exit code $0.$\\r$\\n$\\r$\\nCheck log file at: $TEMP\\ncsi_install.log$\\r$\\n$\\r$\\nCommon issues:$\\r$\\n- Port 80 may be in use (try different port)$\\r$\\n- Windows Firewall blocking connection$\\r$\\n- Antivirus software interference$\\r$\\n- Another service using the port$\\r$\\n$\\r$\\nOr run installer.py manually for detailed output"
     Goto done
     
 success:

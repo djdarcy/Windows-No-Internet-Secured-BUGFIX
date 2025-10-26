@@ -5,6 +5,19 @@ All notable changes to the "Windows (No Internet, Secured) BUGFIX" NCSI Resolver
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.4-alpha] - 2025-10-26
+
+### Fixed
+- NSIS installer directory structure (now creates `NCSIresolver\` subdirectory correctly)
+- File locking issue during NSIS installation (`WinError 32` when copying files)
+- Service wrapper path detection in `service_installer.py`
+- Admin elevation prompt in quick mode causing `EOFError`
+- Installer log file creation for better debugging (`%TEMP%\ncsi_install.log`)
+
+### Changed
+- Installer now skips file creation when files already exist (prevents conflicts)
+- NSIS installer properly organizes files into root and `NCSIresolver\` subdirectory
+
 ## [0.7.3-alpha] - 2025-10-26
 
 ### Added
