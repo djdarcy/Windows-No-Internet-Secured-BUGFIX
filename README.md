@@ -15,6 +15,8 @@ A one-click silent background solution to fix the "No Internet, Secured" Windows
 
 Quick download links: [`NCSI_Resolver_v0.7.4_setup.exe`](https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/releases/download/v0.7.4-alpha/NCSI_Resolver_v0.7.4_setup.exe) or [source zip](https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/archive/refs/tags/v0.7.4-alpha.zip) 
 
+**NOTE**: *It take upwards of a few minutes for Windows to notice the change or requires a system restart*
+
 
 [workflow-badge]: https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/actions/workflows/python.yml/badge.svg
 [workflow-url]: https://github.com/djdarcy/Windows-No-Internet-Secured-BUGFIX/actions
